@@ -1,0 +1,29 @@
+# Apache 2.4: ersätt sökvägarna med serverns riktiga sökvägar.
+# Aktivera först när DNS pekar hit och ett giltigt TLS-certifikat finns.
+<VirtualHost *:80>
+    ServerName puls.j4rl.se
+    Redirect permanent / https://puls.j4rl.se/
+</VirtualHost>
+
+<VirtualHost *:443>
+    ServerName puls.j4rl.se
+    DocumentRoot /var/www/puls
+
+    SSLEngine on
+    SSLCertificateFile /etc/letsencrypt/live/puls.j4rl.se/fullchain.pem
+    SSLCertificateKeyFile /etc/letsencrypt/live/puls.j4rl.se/privkey.pem
+
+    <Directory /var/www/puls>
+        Options -Indexes
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    # Konfiguration, test- och installationsfiler ska inte kunna laddas ned.
+    <DirectoryMatch "/(?:includes|scripts|tests|deploy|var|\.git)(?:/|$)">
+        Require all denied
+    </DirectoryMatch>
+
+    ErrorLog ${APACHE_LOG_DIR}/puls-error.log
+    CustomLog ${APACHE_LOG_DIR}/puls-access.log combined
+</VirtualHost>

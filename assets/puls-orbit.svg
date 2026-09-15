@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 410" role="img" aria-labelledby="title desc">
+<title id="title">Pulsens gemensamma bild</title><desc id="desc">Färgade cirklar samlas runt en tydlig puls.</desc>
+<defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ddff74"/><stop offset="1" stop-color="#7fcef1"/></linearGradient><filter id="s"><feGaussianBlur stdDeviation="14"/></filter></defs>
+<circle cx="282" cy="202" r="156" fill="#ddff74" opacity=".1" filter="url(#s)"/><path d="M78 204c67-113 224-139 343-44 28 22 47 47 58 73" fill="none" stroke="#ffffff" stroke-opacity=".22" stroke-width="2" stroke-dasharray="7 11"/><path d="M102 288c72 78 208 89 309 20" fill="none" stroke="#ffffff" stroke-opacity=".2" stroke-width="2" stroke-dasharray="4 12"/>
+<g fill="url(#g)"><circle cx="151" cy="125" r="22"/><circle cx="360" cy="103" r="14"/><circle cx="424" cy="218" r="28"/><circle cx="173" cy="300" r="14"/><circle cx="326" cy="321" r="20"/></g><g fill="#fff"><circle cx="91" cy="219" r="8"/><circle cx="243" cy="76" r="8"/><circle cx="388" cy="302" r="7"/></g>
+<path d="M93 212h57l18-47 28 101 25-61 21 31h101" fill="none" stroke="#fff" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/><circle cx="245" cy="203" r="76" fill="#252444" stroke="#ddff74" stroke-width="2"/><path d="M209 203h22l14-36 21 72 16-36 13 18h26" fill="none" stroke="#ddff74" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
