@@ -144,7 +144,14 @@ export async function liveQuestionSet({app,api,code,initial,settings,isStopped})
  find('#copy-link').addEventListener('click',async()=>{
   const target=find('#copy-feedback');try{await navigator.clipboard.writeText(joinUrl.href);target.textContent='Länken är kopierad.';}catch{target.innerHTML=`<label>Kopiera länken manuellt<input readonly value="${e(joinUrl.href)}"></label>`;target.querySelector('input').select();}
  });
- initResultPrinting(find('#print-results-button'),()=>inactive()||loading?null:{question:state.question,answers,design:state.set.design},message=>showError(find('#live-error'),message));
+ const loadPrintResults=async()=>{
+  const questions=await Promise.all(state.questions.map(async summary=>{
+   const response=await api('results',{code,query:{questionId:String(summary.id),since:'0'}});
+   return {question:response.question,answers:response.answers.map(answer=>answer.value)};
+  }));
+  return {question:questions[0].question,answers:questions[0].answers,questions,setTitle:state.set.title,design:state.set.design};
+ };
+ initResultPrinting(find('#print-results-button'),()=>inactive()||loading?null:{question:state.question,answers,design:state.set.design},message=>showError(find('#live-error'),message),loadPrintResults);
  draw();
  try{await window.PulsQR.toCanvas(find('#qr'),joinUrl.href,{width:200,margin:3,errorCorrectionLevel:'M',color:{dark:'#252444',light:'#ffffff'}});}catch{find('#qr').replaceWith(Object.assign(document.createElement('p'),{textContent:'Använd deltagarkoden eller länken för att svara.'}));}
  async function poll(){if(inactive())return;if(!busy&&!document.hidden)await refresh(loading);if(!inactive())setTimeout(poll,2000);}

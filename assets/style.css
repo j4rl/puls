@@ -2100,8 +2100,8 @@ ld-theme-toggle:not(:defined) {
     pointer-events: none
 }
 
-body:has(#set-backdrop) > .topbar,
-body:has(#set-backdrop) > #app {
+body:has(#set-backdrop)>.topbar,
+body:has(#set-backdrop)>#app {
     position: relative;
     z-index: 1
 }
@@ -2110,13 +2110,13 @@ body:has(#set-backdrop) > #app {
     color: var(--text)
 }
 
-.set-themed > .pagehead {
+.set-themed>.pagehead {
     background: var(--surface);
     padding: 20px;
     border-radius: var(--radius-lg)
 }
 
-.set-themed .livegrid > div {
+.set-themed .livegrid>div {
     background: var(--surface);
     padding: 16px;
     border-radius: var(--radius-lg)
@@ -2134,7 +2134,7 @@ body:has(#set-backdrop) > #app {
     font-weight: 600
 }
 
-.set-design-editor > * + * {
+.set-design-editor>*+* {
     margin-top: 16px
 }
 
@@ -2157,7 +2157,7 @@ body:has(#set-backdrop) > #app {
     cursor: pointer
 }
 
-.set-image-fields > div {
+.set-image-fields>div {
     margin: 18px 0
 }
 
@@ -2306,7 +2306,7 @@ body:has(#set-backdrop) > #app {
         color-scheme: light
     }
 
-    body.printing-results > :not(#print-results) {
+    body.printing-results> :not(#print-results) {
         display: none !important
     }
 
@@ -2344,6 +2344,10 @@ body:has(#set-backdrop) > #app {
         padding-bottom: 5mm;
         margin-bottom: 6mm;
         break-inside: avoid
+    }
+
+    #print-results .print-question-next {
+        break-before: page
     }
 
     #print-results h1 {
@@ -2391,7 +2395,7 @@ body:has(#set-backdrop) > #app {
         border: 1px solid #aaa
     }
 
-    #print-results .barlabel > b {
+    #print-results .barlabel>b {
         flex-shrink: 0
     }
 
