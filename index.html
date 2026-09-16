@@ -1,16 +1,44 @@
 <!doctype html>
 <html lang="sv">
+
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="Skapa en fråga, låt alla svara och se gruppens tankar ta form live.">
-<meta name="theme-color" content="#4941ce"><meta name="referrer" content="same-origin">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://ld.j4rl.se; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
-<title>Puls – Fråga. Lyssna. Förstå.</title>
-<link rel="icon" href="assets/favicon.svg" type="image/svg+xml"><link rel="stylesheet" href="assets/style.css">
-<script src="assets/vendor/qrcode.min.js" defer></script><script src="assets/app.js" type="module"></script>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="description" content="Skapa en fråga, låt alla svara och se gruppens tankar ta form live.">
+    <meta name="theme-color" content="#4941ce">
+    <meta name="referrer" content="same-origin">
+    <meta http-equiv="Content-Security-Policy"
+        content="default-src 'self'; script-src 'self' https://ld.j4rl.se; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
+    <title>Puls – Fråga. Lyssna. Förstå.</title>
+    <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="assets/style.css">
+    <script src="assets/vendor/qrcode.min.js" defer></script>
+    <script src="assets/app.js" type="module"></script>
 </head>
+
 <body>
-<header class="topbar"><a class="brand" href="./" aria-label="Puls, startsida"><img src="assets/favicon.svg" alt="">puls<span>BETA</span></a><span class="topnote">Ge alla i rummet en röst.</span><nav class="top-actions" aria-label="Inställningar och konto"><a class="nav-link" href="om.html">Om Puls</a><div class="appearance-controls"><ld-theme-toggle id="theme-mode" storage-key="ld-theme" hidden></ld-theme-toggle><label id="theme-fallback" class="theme-fallback"><span class="sr-only">Ljust eller mörkt utseende</span><select id="theme-mode-fallback" aria-label="Ljust eller mörkt utseende"><option value="system">Auto</option><option value="light">Ljust</option><option value="dark">Mörkt</option></select></label><button class="btn" id="theme-settings" type="button" hidden>Mitt tema</button></div><div id="account-controls"></div><a class="btn join-link" href="?join">Svara på en fråga <span aria-hidden="true">↗</span></a></nav></header>
-<main id="app" class="shell"><div class="spinner" role="status" aria-label="Laddar Puls"></div></main>
-<noscript><p class="panel">Aktivera JavaScript för att skapa frågor och svara i Puls.</p></noscript>
-</body></html>
+    <header class="topbar"><a class="brand" href="./" aria-label="Puls, startsida"><img src="assets/favicon.svg"
+                alt="">puls<span>BETA</span></a><span class="topnote">Ge alla i rummet en röst.</span>
+        <nav class="top-actions" aria-label="Inställningar och konto"><a class="nav-link" href="om.html">Om Puls</a>
+            <div class="appearance-controls"><ld-theme-toggle id="theme-mode" storage-key="ld-theme"
+                    hidden></ld-theme-toggle><label id="theme-fallback" class="theme-fallback"><span
+                        class="sr-only">Ljust eller mörkt utseende</span><select id="theme-mode-fallback"
+                        aria-label="Ljust eller mörkt utseende">
+                        <option value="system">Auto</option>
+                        <option value="light">Ljust</option>
+                        <option value="dark">Mörkt</option>
+                    </select></label><button class="btn" id="theme-settings" type="button" hidden>Mitt tema</button>
+            </div>
+            <div id="account-controls"></div><a class="btn join-link" href="?join">Svara på en fråga <span
+                    aria-hidden="true">↗</span></a>
+        </nav>
+    </header>
+    <main id="app" class="shell">
+        <div class="spinner" role="status" aria-label="Laddar Puls"></div>
+    </main>
+    <noscript>
+        <p class="panel">Aktivera JavaScript för att skapa frågor och svara i Puls.</p>
+    </noscript>
+</body>
+
+</html>
