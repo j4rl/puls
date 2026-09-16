@@ -48,3 +48,38 @@ CREATE TABLE IF NOT EXISTS answers (
     KEY idx_answers_question_id (question_id, id),
     CONSTRAINT fk_answers_question FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Setet använder den första frågans kod. Befintliga frågor behöver inte ändras.
+CREATE TABLE IF NOT EXISTS question_sets (
+    id BIGINT UNSIGNED NOT NULL,
+    title VARCHAR(240) NOT NULL,
+    progression VARCHAR(16) NOT NULL,
+    current_position INT UNSIGNED NOT NULL DEFAULT 0,
+    is_open TINYINT(1) NOT NULL DEFAULT 1,
+    finished TINYINT(1) NOT NULL DEFAULT 0,
+    PRIMARY KEY (id),
+    CONSTRAINT fk_sets_root FOREIGN KEY (id) REFERENCES questions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS set_questions (
+    set_id BIGINT UNSIGNED NOT NULL,
+    question_id BIGINT UNSIGNED NOT NULL,
+    position INT UNSIGNED NOT NULL,
+    PRIMARY KEY (set_id, position),
+    UNIQUE KEY uq_set_question (question_id),
+    CONSTRAINT fk_set_questions_set FOREIGN KEY (set_id) REFERENCES question_sets(id) ON DELETE CASCADE,
+    CONSTRAINT fk_set_questions_question FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS set_designs (
+    set_id BIGINT UNSIGNED NOT NULL,
+    design_json TEXT NOT NULL,
+    version CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    PRIMARY KEY (set_id),
+    CONSTRAINT fk_set_design FOREIGN KEY (set_id) REFERENCES question_sets(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS set_design_assets (
+    set_id BIGINT UNSIGNED NOT NULL,
+    slot VARCHAR(16) NOT NULL,
+    mime VARCHAR(32) NOT NULL,
+    content MEDIUMBLOB NOT NULL,
+    PRIMARY KEY (set_id,slot),
+    CONSTRAINT fk_set_design_asset FOREIGN KEY (set_id) REFERENCES question_sets(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

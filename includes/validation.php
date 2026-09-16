@@ -70,6 +70,18 @@ function validate_question(array $data): array {
     if (!is_string($view) || !in_array($view, allowed_views()[$kind], true)) throw new InvalidArgumentException('Välj en resultatvy som passar frågan.');
     return ['title'=>trim($data['title']), 'kind'=>$kind, 'options'=>$options, 'min'=>(float)$min, 'max'=>(float)$max, 'view'=>$view];
 }
+function validate_question_set(array $data): array {
+    if (!valid_text($data['title'] ?? null,240)) throw new InvalidArgumentException('Ge frågesetet ett namn, högst 240 tecken.');
+    if (!in_array($data['progression'] ?? null,['automatic','host'],true)) throw new InvalidArgumentException('Välj hur deltagarna går vidare mellan frågorna.');
+    $questions=$data['questions'] ?? null;
+    if (!is_array($questions) || count($questions)<1 || count($questions)>20 || array_keys($questions)!==range(0,count($questions)-1)) throw new InvalidArgumentException('Ett frågeset behöver 1–20 frågor.');
+    foreach ($questions as $i=>$question) {
+        if (!is_array($question)) throw new InvalidArgumentException('Ogiltig fråga i frågesetet.');
+        try {$questions[$i]=validate_question($question);}
+        catch (InvalidArgumentException $e) {throw new InvalidArgumentException('Fråga '.($i+1).': '.$e->getMessage());}
+    }
+    return ['title'=>trim($data['title']),'progression'=>$data['progression'],'questions'=>$questions];
+}
 function validate_answer(array $question, $value) {
     $kind = $question['kind'];
     if ($kind === 'number') {

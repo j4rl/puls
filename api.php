@@ -1,13 +1,24 @@
 <?php
 declare(strict_types=1);
 require __DIR__.'/includes/bootstrap.php';
+require __DIR__.'/includes/question-sets.php';
+require __DIR__.'/includes/set-design.php';
 $action = $_GET['action'] ?? 'bootstrap';
 $code = $_GET['code'] ?? '';
 if (!is_string($action) || !is_string($code)) respond(['error'=>'Ogiltig åtgärd eller frågekod.'],400);
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if (!in_array($method,['GET','POST'],true)) respond(['error'=>'Metoden stöds inte.'],405);
-if (in_array($action,['bootstrap','list','question','results'],true) && $method !== 'GET') respond(['error'=>'Använd GET.'],405);
+if (in_array($action,['bootstrap','list','question','results','set-image'],true) && $method !== 'GET') respond(['error'=>'Använd GET.'],405);
 try {
+    if ($action === 'create-set') create_question_set();
+    if (in_array($action,['question','results','update','delete','answer','set-advance','set-design','set-image'],true)) {
+        $membership=find_set_membership($code);
+        if ($membership) {
+            if ($membership['root_code'] !== $code) respond(['error'=>'Använd frågesetets gemensamma deltagarkod.'],404);
+            if ($action==='set-image')serve_set_image($code,(int)$membership['set_id']);
+            handle_question_set($action,$code,(int)$membership['set_id']);
+        }
+    }
     if ($action === 'bootstrap') {
         database();
         owner_hash(); voter_hash();
@@ -22,7 +33,7 @@ try {
     }
     if ($action === 'preferences') {
         $p = require_write();
-        $user = require_user();
+        $user = require_user('Logga in för att spara ett eget tema.');
         if (!array_key_exists('theme',$p)) throw new InvalidArgumentException('Ange ett tema eller återställ till standard.');
         $theme = validate_theme($p['theme']);
         $json = $theme === null ? null : json_encode($theme,JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
@@ -31,13 +42,16 @@ try {
         auth_response($user);
     }
     if ($action === 'list') {
-        $rows = query('SELECT q.code,q.title,q.kind,q.is_open,q.created_at,(SELECT COUNT(*) FROM answers a WHERE a.question_id=q.id) AS answer_count FROM questions q WHERE q.owner_hash=? ORDER BY q.id DESC LIMIT 50','s',[owner_hash()])->get_result()->fetch_all(MYSQLI_ASSOC);
+        $user = require_user('Logga in för att se dina frågor.');
+        $rows = query("SELECT q.code,COALESCE(s.title,q.title) AS title,IF(s.id IS NULL,q.kind,'set') AS kind,COALESCE(s.is_open,q.is_open) AS is_open,q.created_at,s.progression,s.finished,(SELECT COUNT(*) FROM set_questions m WHERE m.set_id=s.id) AS question_count,IF(s.id IS NULL,(SELECT COUNT(*) FROM answers a WHERE a.question_id=q.id),(SELECT COUNT(*) FROM answers a JOIN set_questions m ON m.question_id=a.question_id WHERE m.set_id=s.id)) AS answer_count FROM questions q LEFT JOIN question_sets s ON s.id=q.id LEFT JOIN set_questions member ON member.question_id=q.id WHERE q.owner_hash=? AND (member.set_id IS NULL OR member.set_id=q.id) ORDER BY q.id DESC LIMIT 50",'s',[$user['owner_hash']])->get_result()->fetch_all(MYSQLI_ASSOC);
         respond(['questions'=>$rows]);
     }
     if ($action === 'create') {
-        $p = validate_question(require_write());
+        $p = require_write();
+        $user = require_user('Logga in för att skapa en fråga.');
+        $p = validate_question($p);
         rate_limit('create-ip',request_ip(),max(1,(int)($config['max_questions_per_ip_per_hour']??120)),3600);
-        $owner = owner_hash();
+        $owner = $user['owner_hash'];
         $count=query('SELECT COUNT(*) AS n FROM questions WHERE owner_hash=? AND created_at>DATE_SUB(NOW(),INTERVAL 1 HOUR)','s',[$owner])->get_result()->fetch_assoc();
         if ((int)$count['n'] >= (int)($config['max_questions_per_hour']??30)) respond(['error'=>'Du har skapat många frågor. Försök igen om en stund.'],429);
         for($attempt=0;$attempt<8;$attempt++) {
@@ -67,6 +81,15 @@ try {
         if (isset($p['open']) && is_bool($p['open'])) query('UPDATE questions SET is_open=? WHERE id=?','ii',[$p['open']?1:0,(int)$q['id']]);
         elseif (isset($p['view']) && is_string($p['view']) && in_array($p['view'],allowed_views()[$q['kind']],true)) query('UPDATE questions SET result_view=? WHERE id=?','si',[$p['view'],(int)$q['id']]);
         else respond(['error'=>'Ogiltig ändring.'],400);
+        respond(['ok'=>true]);
+    }
+    if ($action === 'delete') {
+        require_write();
+        $user=require_user('Logga in för att ta bort en fråga.');
+        $q=find_question($code);
+        if (!hash_equals($q['owner_hash'],$user['owner_hash'])) respond(['error'=>'Du kan bara ta bort dina egna frågor.'],403);
+        $deleted=query('DELETE FROM questions WHERE id=? AND owner_hash=?','is',[(int)$q['id'],$user['owner_hash']]);
+        if ($deleted->affected_rows !== 1) respond(['error'=>'Frågan finns inte längre.'],404);
         respond(['ok'=>true]);
     }
     if ($action === 'answer') {

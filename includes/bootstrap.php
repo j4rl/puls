@@ -72,14 +72,14 @@ function query(string $sql, string $types = '', array $parameters = []): mysqli_
     $stmt->execute();
     return $stmt;
 }
-function require_write(): array {
+function require_write(int $maxBytes = 16384): array {
     global $csrf;
     if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') respond(['error'=>'Använd POST för denna åtgärd.'],405);
     if (!hash_equals($csrf,(string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? ''))) respond(['error'=>'Sessionen har gått ut. Ladda om sidan och försök igen.'],403);
     if (strtolower(trim(explode(';', $_SERVER['CONTENT_TYPE'] ?? '')[0])) !== 'application/json') respond(['error'=>'JSON krävs.'],415);
-    if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0)>16384) respond(['error'=>'För mycket text.'],413);
-    $raw = file_get_contents('php://input',false,null,0,16385);
-    if ($raw === false || strlen($raw)>16384) respond(['error'=>'För mycket text.'],413);
+    if ((int)($_SERVER['CONTENT_LENGTH'] ?? 0)>$maxBytes) respond(['error'=>'För mycket text.'],413);
+    $raw = file_get_contents('php://input',false,null,0,$maxBytes+1);
+    if ($raw === false || strlen($raw)>$maxBytes) respond(['error'=>'För mycket text.'],413);
     try { $data=json_decode($raw,true,32,JSON_THROW_ON_ERROR); } catch(JsonException $e) { respond(['error'=>'Ogiltiga data.'],400); }
     if (!is_array($data) || substr(ltrim($raw),0,1) !== '{') respond(['error'=>'JSON-data måste vara ett objekt.'],400);
     return $data;

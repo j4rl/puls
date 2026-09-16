@@ -13,6 +13,7 @@ $db = new mysqli($config['db_host'], $config['db_user'], $config['db_password'],
 $db->set_charset('utf8mb4');
 $prefix = 'puls-test-'.bin2hex(random_bytes(8));
 $email = $prefix.'@example.test';
+$otherEmail = $prefix.'-other@example.test';
 $password = bin2hex(random_bytes(18));
 $created = [];
 $clients = [];
@@ -83,13 +84,60 @@ function createQuestion(array &$client, string $kind, array $extra = []): string
     $created[] = $code;
     return $code;
 }
+function seedLegacyGuestQuestion(array $client): string {
+    global $db, $prefix, $created;
+    // Frågor från tiden innan inloggningskravet ska fortfarande kunna flyttas till konton.
+    $token = null;
+    foreach (curl_getinfo($client['curl'], CURLINFO_COOKIELIST) as $cookie) {
+        $parts = explode("\t", $cookie);
+        if (($parts[5] ?? '') === 'puls_owner') $token = $parts[6];
+    }
+    if ($token === null) throw new RuntimeException('Guest owner cookie was not issued.');
+    $ownerHash = hash('sha256', $token);
+    $title = $prefix.' legacy guest';
+    $options = json_encode(['Öva','Prata'], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    for ($attempt = 0; $attempt < 8; $attempt++) {
+        $code = (string)random_int(100000, 999999);
+        try {
+            $stmt = $db->prepare("INSERT INTO questions (code,owner_hash,title,kind,options_json,min_value,max_value,result_view) VALUES (?,?,?,'choice',?,-2.5,2.5,'bars')");
+            $stmt->bind_param('ssss', $code, $ownerHash, $title, $options); $stmt->execute();
+            $created[] = $code;
+            return $code;
+        } catch (mysqli_sql_exception $e) {
+            if ($e->getCode() !== 1062) throw $e;
+        }
+    }
+    throw new RuntimeException('Could not reserve a legacy test question code.');
+}
 
 try {
     $owner = client(); $voter = client(); $other = client();
     request($owner, 'bootstrap'); request($voter, 'bootstrap'); request($other, 'bootstrap');
     check(strlen($owner['csrf']) === 64, 'Bootstrap creates a CSRF token');
     request($owner, 'create', [], [], 403, 'invalid');
+    request($owner, 'create', [], [], 401);
+    request($owner, 'list', null, [], 401);
+    check(true, 'Guests cannot create or list questions');
     request($other, 'preferences', ['theme'=>null], [], 401);
+    $legacyCode = seedLegacyGuestQuestion($owner);
+    request($owner, 'delete', [], ['code'=>$legacyCode], 401);
+    request($owner, 'question', null, ['code'=>$legacyCode]);
+    check(true, 'Even the guest owner cannot delete a legacy question without signing in');
+    $oldGuest = copyGuestCookie($owner);
+    request($oldGuest, 'results', null, ['code'=>$legacyCode]);
+    $csrfBeforeLogin = $owner['csrf'];
+    $registered = request($owner, 'register', ['name'=>'Integrationstest', 'email'=>$email, 'password'=>$password], [], 201);
+    check($registered['user']['email'] === $email && $csrfBeforeLogin !== $owner['csrf'], 'Registration signs in and rotates CSRF');
+    check(!isset($registered['user']['password_hash']) && !isset($registered['user']['owner_hash']), 'Account responses omit credentials and ownership secrets');
+    $stmt = $db->prepare('SELECT password_hash FROM users WHERE email=?');
+    $stmt->bind_param('s', $email); $stmt->execute();
+    $hash = $stmt->get_result()->fetch_assoc()['password_hash'];
+    check($hash !== $password && password_verify($password, $hash), 'Account password is stored as a verified one-way hash');
+    request($owner, 'preferences', ['theme'=>null], [], 403, $csrfBeforeLogin);
+    request($oldGuest, 'results', null, ['code'=>$legacyCode], 403);
+    request($oldGuest, 'list', null, [], 401);
+    check(true, 'Replayed pre-registration guest cookie cannot access claimed questions');
+    check(array_column(request($owner, 'list')['questions'], 'code') === [$legacyCode], 'Registration claims this guest’s legacy questions');
     $answers = ['choice'=>'Öva','yesno'=>'Ja','check'=>['Öva','Prata'],'word'=>'nyfiken','sentence'=>'<script>alert(1)</script>','number'=>0];
     foreach ($answers as $kind=>$value) {
         $code = createQuestion($owner, $kind);
@@ -110,20 +158,7 @@ try {
     request($other, 'answer', ['value'=>3], ['code'=>$code], 400);
     request($other, 'answer', ['value'=>-2.5], ['code'=>$code], 201);
     check(true, 'Pause, resume and numeric bounds work');
-    $oldGuest = copyGuestCookie($owner);
-    request($oldGuest, 'results', null, ['code'=>$code]);
-    $csrfBeforeLogin = $owner['csrf'];
-    $registered = request($owner, 'register', ['name'=>'Integrationstest', 'email'=>$email, 'password'=>$password], [], 201);
-    check($registered['user']['email'] === $email && $csrfBeforeLogin !== $owner['csrf'], 'Registration signs in and rotates CSRF');
-    check(!isset($registered['user']['password_hash']) && !isset($registered['user']['owner_hash']), 'Account responses omit credentials and ownership secrets');
-    $stmt = $db->prepare('SELECT password_hash FROM users WHERE email=?');
-    $stmt->bind_param('s', $email); $stmt->execute();
-    $hash = $stmt->get_result()->fetch_assoc()['password_hash'];
-    check($hash !== $password && password_verify($password, $hash), 'Account password is stored as a verified one-way hash');
-    request($owner, 'preferences', ['theme'=>null], [], 403, $csrfBeforeLogin);
-    request($oldGuest, 'results', null, ['code'=>$code], 403);
-    check(request($oldGuest, 'list')['questions'] === [], 'Replayed pre-registration guest cookie cannot access claimed questions');
-    check(count(request($owner, 'list')['questions']) === count($created), 'Registration claims this guest’s questions');
+    check(count(request($owner, 'list')['questions']) === count($created), 'Signed-in list includes new and claimed legacy questions');
     request($other, 'login', ['email'=>$email, 'password'=>$password]);
     request($other, 'results', null, ['code'=>$code]);
     check(true, 'Account owner can access results in another browser');
@@ -136,7 +171,9 @@ try {
     request($owner, 'logout', []);
     check(request($owner, 'bootstrap')['user'] === null, 'Logout clears current user');
     request($owner, 'results', null, ['code'=>$code], 403);
-    check(request($owner, 'list')['questions'] === [], 'Guest cookies do not expose account questions after logout');
+    request($owner, 'list', null, [], 401);
+    request($owner, 'create', [], [], 401);
+    check(true, 'Logout blocks listing and creating questions');
     request($owner, 'login', ['email'=>$email, 'password'=>'incorrect-password'], [], 401);
     request($owner, 'login', ['email'=>$email, 'password'=>$password]);
     request($owner, 'results', null, ['code'=>$code]);
@@ -145,11 +182,14 @@ try {
     check(true, 'Re-login and invalid request handling work');
     $claimant = client();
     request($claimant, 'bootstrap');
-    $guestCode = createQuestion($claimant, 'choice');
+    $guestCode = seedLegacyGuestQuestion($claimant);
     $beforeClaim = copyGuestCookie($claimant);
     request($claimant, 'login', ['email'=>$email, 'password'=>$password]);
     check(!in_array($guestCode, array_column(request($claimant, 'list')['questions'], 'code'), true), 'Login preserves guest questions separately unless claiming is selected');
     request($claimant, 'results', null, ['code'=>$guestCode], 403);
+    request($claimant, 'delete', [], ['code'=>$guestCode], 403);
+    request($claimant, 'question', null, ['code'=>$guestCode]);
+    check(true, 'Signing in does not grant deletion of unclaimed guest questions');
     request($claimant, 'logout', []);
     request($claimant, 'results', null, ['code'=>$guestCode]);
     check(true, 'Unclaimed guest questions remain accessible after logout');
@@ -160,6 +200,34 @@ try {
     request($claimant, 'logout', []);
     request($claimant, 'results', null, ['code'=>$guestCode], 403);
     check(true, 'Explicit guest claim transfers ownership and revokes both old and logged-out guest access');
+    $nonOwner = client();
+    request($nonOwner, 'bootstrap');
+    request($nonOwner, 'register', ['name'=>'Annat testkonto', 'email'=>$otherEmail, 'password'=>$password], [], 201);
+    $deleteCode = createQuestion($owner, 'choice');
+    request($voter, 'answer', ['value'=>'Öva'], ['code'=>$deleteCode], 201);
+    $stmt = $db->prepare('SELECT id FROM questions WHERE code=?');
+    $stmt->bind_param('s', $deleteCode); $stmt->execute();
+    $deleteId = (int)$stmt->get_result()->fetch_assoc()['id'];
+    request($owner, 'delete', null, ['code'=>$deleteCode], 405);
+    request($owner, 'delete', [], ['code'=>$deleteCode], 403, 'invalid');
+    request($voter, 'delete', [], ['code'=>$deleteCode], 401);
+    request($nonOwner, 'delete', [], ['code'=>$deleteCode], 403);
+    $preserved = request($owner, 'results', null, ['code'=>$deleteCode]);
+    check(count($preserved['answers']) === 1 && $preserved['answers'][0]['value'] === 'Öva', 'Wrong method, invalid CSRF, guest and another account cannot delete the question or its answers');
+    check(in_array($deleteCode, array_column(request($owner, 'list')['questions'], 'code'), true), 'Rejected deletion leaves the question in its owner’s list');
+    check(request($owner, 'delete', [], ['code'=>$deleteCode])['ok'] === true, 'Signed-in owner can delete an open question');
+    check(!in_array($deleteCode, array_column(request($owner, 'list')['questions'], 'code'), true), 'Deleted question disappears from its owner’s list');
+    $stmt = $db->prepare('SELECT COUNT(*) AS n FROM answers WHERE question_id=?');
+    $stmt->bind_param('i', $deleteId); $stmt->execute();
+    check((int)$stmt->get_result()->fetch_assoc()['n'] === 0, 'Deleting a question also deletes its answers');
+    request($voter, 'question', null, ['code'=>$deleteCode], 404);
+    request($owner, 'results', null, ['code'=>$deleteCode], 404);
+    request($voter, 'answer', ['value'=>'Öva'], ['code'=>$deleteCode], 404);
+    request($owner, 'delete', [], ['code'=>$deleteCode], 404);
+    check(true, 'Deleted codes cannot be opened, answered or deleted again');
+    request($owner, 'update', ['open'=>false], ['code'=>$guestCode]);
+    check(request($owner, 'delete', [], ['code'=>$guestCode])['ok'] === true, 'Signed-in owner can also delete a paused, claimed legacy question');
+    require __DIR__.'/question-sets-integration.php';
     $limited = client($rateIp);
     request($limited, 'bootstrap');
     $attemptLimit = min(15, max(1, (int)($config['max_login_attempts_per_quarter_hour'] ?? 30)));
@@ -181,8 +249,10 @@ try {
         $title = $prefix.'%';
         $stmt->bind_param('ss', $code, $title); $stmt->execute();
     }
-    $stmt = $db->prepare('DELETE FROM users WHERE email=?');
-    $stmt->bind_param('s', $email); $stmt->execute();
+    foreach ([$email, $otherEmail] as $createdEmail) {
+        $stmt = $db->prepare('DELETE FROM users WHERE email=?');
+        $stmt->bind_param('s', $createdEmail); $stmt->execute();
+    }
     foreach ($rateKeys as $key) {
         $stmt = $db->prepare('DELETE FROM auth_rate_limits WHERE rate_key=?');
         $stmt->bind_param('s', $key); $stmt->execute();

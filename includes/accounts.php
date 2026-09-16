@@ -17,9 +17,9 @@ function public_user(?array $user): ?array {
     return ['id'=>(int)$user['id'],'name'=>$user['name'],'email'=>$user['email'],'theme'=>$user['theme_json'] === null ? null : json_decode($user['theme_json'],true,32,JSON_THROW_ON_ERROR)];
 }
 
-function require_user(): array {
+function require_user(string $message = 'Logga in för att fortsätta.'): array {
     $user = current_user();
-    if (!$user) respond(['error'=>'Logga in för att spara ett eget tema.'],401);
+    if (!$user) respond(['error'=>$message],401);
     return $user;
 }
 

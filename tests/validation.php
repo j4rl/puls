@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 require dirname(__DIR__).'/includes/validation.php';
+require dirname(__DIR__).'/includes/set-design.php';
 function check(bool $condition,string $name): void {if(!$condition)throw new RuntimeException('FAIL: '.$name);echo "OK: $name\n";}
 function rejects(callable $fn,string $name): void {try{$fn();}catch(InvalidArgumentException $e){check(true,$name);return;}throw new RuntimeException('FAIL: '.$name);}
 $p=['title'=>'Vad tycker du?','kind'=>'choice','options'=>['Öva','Prata'],'min'=>0,'max'=>10,'view'=>'bars'];
@@ -47,4 +48,27 @@ rejects(fn()=>validate_theme(array_replace($theme,['light'=>array_replace($token
 rejects(fn()=>validate_theme(array_replace($theme,['light'=>$tokens+['font-body'=>'sans-serif;display:none']])),'CSS declaration injection rejected');
 rejects(fn()=>validate_theme(array_replace($theme,['light'=>$tokens+['radius-sm'=>'99px']])),'Oversized theme radius rejected');
 rejects(fn()=>validate_theme(array_replace($theme,['light'=>$tokens+['position'=>'fixed']])),'Unknown theme token rejected');
+$set=['title'=>'Dagens frågor','progression'=>'automatic','questions'=>[$p]];
+check(count(validate_question_set($set)['questions'])===1,'A question set may contain one question');
+check(validate_question_set(array_replace($set,['progression'=>'host']))['progression']==='host','Host-controlled progression accepted');
+check(count(validate_question_set(array_replace($set,['questions'=>array_fill(0,20,$p)]))['questions'])===20,'Twenty questions accepted');
+rejects(fn()=>validate_question_set(array_replace($set,['questions'=>[]])),'Empty set rejected');
+rejects(fn()=>validate_question_set(array_replace($set,['questions'=>array_fill(0,21,$p)])),'Oversized set rejected');
+rejects(fn()=>validate_question_set(array_replace($set,['questions'=>['key'=>$p]])),'Non-list questions rejected');
+rejects(fn()=>validate_question_set(array_replace($set,['questions'=>[null]])),'Malformed set question rejected');
+rejects(fn()=>validate_question_set(array_replace($set,['questions'=>[array_replace($p,['title'=>''])]])),'Invalid nested question rejected');
+rejects(fn()=>validate_question_set(array_replace($set,['title'=>''])),'Unnamed set rejected');
+rejects(fn()=>validate_question_set(array_replace($set,['progression'=>'invalid'])),'Unknown progression rejected');
+$png='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j/pkAAAAASUVORK5CYII=';
+$design=['colors'=>['background'=>'#FFFFFF','surface'=>'#eeeeee','text'=>'#111111','primary'=>'#446622'],'images'=>['logo'=>$png]];
+check(validate_set_design($design)['colors']['background']==='#ffffff','Set colors normalized');
+check(validate_set_design($design)['images']['logo']['mime']==='image/png','Valid PNG accepted');
+check(validate_set_design(['images'=>['logo'=>'keep']],true)['images']['logo']==='keep','Existing image can be retained');
+rejects(fn()=>validate_set_design(['images'=>['logo'=>'keep']]),'Cannot retain an image when creating a set');
+rejects(fn()=>validate_set_design(['colors'=>['text'=>'#fff']]),'Incomplete set colors rejected');
+rejects(fn()=>validate_set_design(['images'=>['logo'=>'https://example.com/logo.png']]),'External image URLs rejected');
+rejects(fn()=>validate_set_design(['images'=>['logo'=>'data:image/svg+xml;base64,'.base64_encode('<svg/>')]]),'SVG uploads rejected');
+rejects(fn()=>validate_set_design(['images'=>['logo'=>'data:image/png;base64,'.base64_encode('not an image')]]),'Fake PNG rejected');
+rejects(fn()=>validate_set_design(['images'=>['logo'=>str_repeat('x',1400001)]]),'Oversized image rejected');
+rejects(fn()=>validate_set_design(['images'=>['other'=>$png]]),'Unknown image slot rejected');
 echo "All validation checks passed.\n";

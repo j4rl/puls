@@ -22,12 +22,12 @@ export function grouped(question,answers){
  const counts=new Map();answers.forEach(v=>{const key=String(v).trim().normalize('NFC').toLocaleLowerCase('sv');counts.set(key,(counts.get(key)||0)+1)});
  return [...counts].map(([label,count])=>({label,count})).sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,'sv'));
 }
-export function renderChart(q,answers){
+export function renderChart(q,answers,{forPrint=false}={}){
  if(!answers.length)return '<div class="liveempty">Inga svar ännu.<br><small>Dela koden och låt de första tankarna komma in.</small></div>';
  const e=escapeHTML,data=grouped(q,answers),max=Math.max(1,...data.map(d=>d.count));
  const percent=v=>Math.round(v/answers.length*100);
- const accessible=`<details class="datadetails"><summary>Visa siffrorna</summary><ul>${data.map(d=>`<li>${e(d.label)}: ${d.count}${['choice','yesno','check','number'].includes(q.kind)?` (${percent(d.count)} %)`:''}</li>`).join('')}</ul>${q.kind==='number'?'<small>Intervall inkluderar undre gränsen. Det sista inkluderar även max.</small>':''}</details>`;
- if(q.view==='cards')return `<div class="viz cards">${answers.slice(-200).reverse().map(v=>`<div class="quote">${e(v)}</div>`).join('')}</div>${answers.length>200?'<p class="small">De 200 senaste svaren visas.</p>':''}`;
+ const accessible=`${forPrint?'<section class="datadetails"><h2>Siffrorna bakom diagrammet</h2>':'<details class="datadetails"><summary>Visa siffrorna</summary>'}<ul>${data.map(d=>`<li>${e(d.label)}: ${d.count}${['choice','yesno','check','number'].includes(q.kind)?` (${percent(d.count)} %)`:''}</li>`).join('')}</ul>${q.kind==='number'?'<small>Intervall inkluderar undre gränsen. Det sista inkluderar även max.</small>':''}${forPrint?'</section>':'</details>'}`;
+ if(q.view==='cards')return `<div class="viz cards">${answers.slice(forPrint?0:-200).reverse().map(v=>`<div class="quote">${e(v)}</div>`).join('')}</div>${!forPrint&&answers.length>200?'<p class="small">De 200 senaste svaren visas.</p>':''}`;
  if(q.view==='cloud')return `<div class="viz cloud">${data.slice(0,80).map((d,i)=>`<span style="font-size:${Math.round(20+40*d.count/max)}px;color:${palette[i%palette.length]}" title="${e(d.label)}: ${d.count} svar">${e(d.label)}</span>`).join('')}</div>${data.length>80?'<p class="small">De 80 vanligaste orden visas.</p>':''}${accessible}`;
  if(q.view==='thermo'){
   const mean=answers.reduce((a,b)=>a+b,0)/answers.length;

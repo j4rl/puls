@@ -1,6 +1,6 @@
 # Puls
 
-En svensk webbapp för att skapa en fråga, dela en QR-kod eller sexsiffrig kod och visa gruppens svar live. PHP och MariaDB/MySQL på servern; vanlig JavaScript i webbläsaren. Ingen byggprocess behövs.
+En svensk webbapp för att skapa frågor och frågeset, dela en QR-kod eller sexsiffrig kod och visa gruppens svar live. PHP och MariaDB/MySQL på servern; vanlig JavaScript i webbläsaren. Ingen byggprocess behövs.
 
 ## Kör på den här datorn
 
@@ -8,7 +8,7 @@ Appen är installerad i `C:\xampp\htdocs\puls`. Databasen `puls` och en separat 
 
 1. Starta **Apache** och **MySQL** i XAMPP om de inte redan körs. Om MariaDB redan kör som Windows-tjänst på port 3306 ska du använda den befintliga tjänsten.
 2. Öppna **http://localhost/puls/**.
-3. Skapa ett konto i appen om du vill spara frågor och egna teman över flera enheter. Inget förinställt användarkonto eller standardlösenord har skapats.
+3. Välj **Logga in** och sedan **Skapa konto** för att registrera ett konto. Inloggning krävs för att skapa frågor; deltagare kan svara utan konto. Inget förinställt användarkonto eller standardlösenord har skapats.
 
 ### Deltagare på mobiler
 
@@ -31,14 +31,42 @@ För lokal databasadministration använder skriptet `root` utan lösenord enligt
 ## Funktioner och konton
 
 - Flerval, ja/nej, kryssrutor, tal med valfritt intervall, meningar och enstaka ord.
+- Frågeset med 1–20 frågor, valfri blandning av frågetyper och en gemensam deltagarkod.
 - Staplar, cirkeldiagram, termometer, ordmoln och textsvar.
+- **Skriv ut / spara PDF** i resultatvyn öppnar webbläsarens utskriftsdialog. Välj skrivare eller **Spara som PDF**. Utskriften innehåller frågan, antal svar, tidpunkt och resultatet, även när det är dolt på skärmen. Alla textsvar och alla ords antal tas med.
 - QR-kod, deltagarlänk, kopiering, helskärm, paus/återupptagning och dolda resultat.
 - Resultat hämtas varannan sekund. Deltagarvyn följer pausning automatiskt.
 - Upp till 5 000 svar per fråga och ett svar per webbläsare. Det är ett cookieskydd; nya webbläsare eller raderade cookies kan ge nya svar.
-- Gäster kan skapa frågor utan konto. Gästfrågor hör till skaparens webbläsarcookie.
-- Registrering flyttar den webbläsarens gästfrågor till det nya kontot. Vid inloggning på ett befintligt konto väljer användaren uttryckligen om gästfrågorna ska flyttas.
+- Frågeformuläret, förhandsvisningen och egna frågor visas först efter inloggning. Deltagare kan svara utan konto via en kod eller deltagarlänk.
+- Äldre gästfrågor hör till skaparens webbläsarcookie och kan fortfarande nås via sina resultatadresser. Registrering flyttar den webbläsarens äldre gästfrågor till det nya kontot. Vid inloggning på ett befintligt konto väljer användaren uttryckligen om gästfrågorna ska flyttas.
 - Kontoägda resultat är tillgängliga på enheter där ägaren loggar in. Utloggning återger inte åtkomst via gamla gästcookies.
+- Inloggade användare kan ta bort egna frågor från **Dina publicerade frågor**. Efter bekräftelse raderas frågan och alla dess svar permanent, och deltagarlänken slutar fungera.
 - Inloggningen går ut efter 12 timmars inaktivitet eller högst sju dagar. Webbläsaren använder en sessionscookie.
+
+## Frågeset
+
+1. Logga in och markera **Samla frågor i ett frågeset** i frågeformuläret.
+2. Ge setet ett namn och välj när nästa fråga ska visas: **Automatiskt efter deltagarens svar** eller **Jag bestämmer när nästa fråga öppnas**.
+3. Skriv frågorna med **Lägg till fråga**. Klicka på en fråga för att redigera den och använd **Flytta upp/ned** för att ändra ordningen före publicering.
+4. Välj **Publicera frågeset** och dela koden eller QR-länken en gång.
+
+I automatiskt läge går varje deltagare vidare i egen takt till sin första obesvarade fråga. I skaparstyrt läge väntar deltagaren efter sitt svar. Skaparen väljer **Öppna nästa fråga** för att byta fråga för alla. Deltagare som ansluter sent börjar på den aktuella frågan; tidigare frågor hoppas över. **Avsluta frågeset** avslutar efter den sista frågan. Det går inte att gå tillbaka i deltagarnas frågeordning eller återöppna ett avslutat set.
+
+**Pausa svar** pausar hela setet. Progressionen sparas genom svaren och behålls när deltagaren laddar om sidan i samma webbläsare. Varje svar binds till ett fråge-ID så att sena svar aldrig sparas på nästa fråga. Setets innehåll och läge väljs före publicering.
+
+Skaparen kan välja vilken frågas resultat som visas utan att ändra deltagarnas fråga. Utskrift/PDF gäller den valda frågans resultat. Frågesetet visas som en post i listan; borttagning efter bekräftelse raderar alla frågor och svar i setet. Varje fråga räknas mot gränsen för nya frågor per timme och har sin egen svarsgräns.
+
+Vid uppgradering behöver **database.sql importeras igen** innan den nya koden används. Det lägger till `question_sets` och `set_questions` utan att ändra befintliga frågor eller svar. Lokalt görs det med `scripts/setup-local.php` enligt ovan. Webbappen behöver inga nya databasrättigheter.
+
+### Eget utseende för varje set
+
+Öppna **Färgtema och bilder för setet** i formuläret, eller välj **Utseende för setet** i ett publicerat sets resultatvy. Välj ett färgförslag (Puls, Skog, Hav eller Natt) och justera bakgrund, frågeruta, text och accent med färgväljarna. Inställningarna hör till setet och påverkar inte ditt kontotema eller andra set.
+
+Du kan ladda upp en bakgrundsbild, en förgrundsbild och en logotyp. Bakgrunden fyller sidan bakom innehållet; förgrunden och logotypen visas ovanför frågan. PNG, JPEG och WebP stöds, inklusive transparens. Varje bild får vara högst 1 MB och 4096 × 4096 pixlar. Förhandsvisningen visar färger och bilder före sparandet. **Avbryt** behåller sparat utseende; varje bild kan tas bort separat, eller allt återställas.
+
+Utseendet följer med till deltagarvyn, vänteläget, resultatvyn och helskärm. Sparade ändringar hämtas med den vanliga pollningen och behåller påbörjade svar. En avslutad deltagarvy hämtar det senaste utseendet vid omladdning. Utskrift/PDF tar med logotyp och förgrundsbild på vit bakgrund.
+
+Bilderna lagras i databasen och hämtas via setets deltagarkod; deltagare behöver inget konto för att se dem. Endast ägaren får ändra utseendet. Radering av setet raderar även dess bilder. `database.sql` lägger också till `set_designs` och `set_design_assets` vid import. Ingen skrivbar uppladdningsmapp behövs. Servern måste tillåta JSON-förfrågningar på upp till 5 MB för tre bilder och ett set.
 
 ## Ljust, mörkt och egna teman
 
@@ -82,10 +110,16 @@ node tests/appearance.mjs
 
 HTTP-testet kräver en körande lokal XAMPP-installation och PHP:s `curl`-tillägg. Det skapar unika testkonton/frågor och tar bort sina egna testdata efteråt. Testet får bara köras mot `localhost` eller `127.0.0.1`.
 
-Valideringstesterna täcker indata, lösenord och säker temaimport. HTTP-testerna täcker alla frågetyper, dubbla svar, behörigheter, sessions-/CSRF-byte, återspelade gästcookies, flytt av gästfrågor, kontosparade teman, försöksgränser och spärrade filer.
+Valideringstesterna täcker indata, lösenord och säker temaimport. HTTP-testerna täcker inloggningskrav för att skapa och lista frågor, gästsvar för alla frågetyper, dubbla svar, behörigheter, radering av egna frågor och tillhörande svar, sessions-/CSRF-byte, återspelade gästcookies, flytt av äldre gästfrågor, kontosparade teman, försöksgränser och spärrade filer.
+
+Gränssnittets inloggningsflöde kan även testas med `node tests/frontend-auth.mjs` när Playwright och Chromium finns installerade. Testet använder simulerade API-svar och kontrollerar bland annat gästvyn, registrering från loginrutan, inloggning, utloggning och deltagarvyn. Ange vid behov `PULS_PLAYWRIGHT_PATH` till en befintlig Playwright-installation, `PULS_BROWSER_EXECUTABLE` till webbläsarens körbara fil eller `PULS_TEST_URL` till en annan lokal appadress.
+
+Utskrift och PDF testas med `node tests/frontend-print.mjs` i samma Playwright-miljö. Testet kontrollerar bland annat fullständiga textsvar, utskriftslayout, uppdaterade resultat och att skärmvyn återställs efter utskrift.
+
+HTTP-testet inkluderar `tests/question-sets-integration.php`, som kontrollerar automatiska och skaparstyrda set, individuella framsteg, paus, behörigheter, blockerade framtida/sena svar, upprepade anrop, medlemskap och fullständig radering. `node tests/frontend-sets.mjs` testar hela flödet med Chromium och den lokala databasen, inklusive redigering, ordning, flera deltagare, omladdning, resultatval, PDF och mobilvy. Det skapar ett tillfälligt testkonto och tar bort kontots frågor och svar efteråt. Ange vid behov `PULS_PHP_PATH` till PHP; övriga Playwright-inställningar är desamma som ovan.
 
 Dessutom verifierades hela användarflödet i Chromium med en verklig export från theme.j4rl.se: registrering, temaimport, QR, mobilsvar, liveuppdatering, paus/återupptagning, flera webbläsare och utloggning i flera flikar. Ljus/mörkt läge testades även med blockerad ld-tjänst. Lokala skärmbilder och testresultat finns i den Git-ignorerade mappen `test-results/`.
 
 ## Fortsatt utveckling
 
-Lämpliga nästa steg är e-postverifiering och lösenordsåterställning (kräver e-posttjänst), export/radering av egna frågor och svar samt samlingar med flera frågor. Dessa funktioner ingår ännu inte. Frågelistan visar för närvarande de 50 senaste frågorna; äldre frågor finns kvar via sina resultatadresser.
+Lämpliga nästa steg är e-postverifiering och lösenordsåterställning (kräver e-posttjänst) samt dataexport av egna frågor och svar. Resultat kan redan skrivas ut eller sparas som PDF via webbläsaren. Listan visar de 50 senaste frågorna/frågeseten; äldre finns kvar via sina resultatadresser.
