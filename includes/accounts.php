@@ -6,7 +6,7 @@ function current_user(): ?array {
     static $cachedId = null, $cachedUser = null;
     $id = (int)$_SESSION['user_id'];
     if ($cachedId !== $id) {
-        $cachedUser = query('SELECT id,name,email,password_hash,owner_hash,theme_json FROM users WHERE id=?','i',[$id])->get_result()->fetch_assoc() ?: null;
+        $cachedUser = query('SELECT id,name,email,password_hash,owner_hash,theme_json FROM puls_users WHERE id=?','i',[$id])->get_result()->fetch_assoc() ?: null;
         $cachedId = $id;
     }
     return $cachedUser;
@@ -50,13 +50,13 @@ function renew_guest_owner(): void {
 
 function rate_limit(string $scope, string $identity, int $limit, int $seconds): void {
     $key = hash('sha256', $scope."\0".$identity);
-    query('INSERT INTO auth_rate_limits (rate_key,attempts,reset_at) VALUES (?,1,DATE_ADD(UTC_TIMESTAMP(),INTERVAL ? SECOND)) ON DUPLICATE KEY UPDATE attempts=IF(reset_at<=UTC_TIMESTAMP(),1,attempts+1),reset_at=IF(reset_at<=UTC_TIMESTAMP(),VALUES(reset_at),reset_at)','si',[$key,$seconds]);
-    $row = query('SELECT attempts,GREATEST(1,TIMESTAMPDIFF(SECOND,UTC_TIMESTAMP(),reset_at)) AS retry_after FROM auth_rate_limits WHERE rate_key=?','s',[$key])->get_result()->fetch_assoc();
+    query('INSERT INTO puls_auth_rate_limits (rate_key,attempts,reset_at) VALUES (?,1,DATE_ADD(UTC_TIMESTAMP(),INTERVAL ? SECOND)) ON DUPLICATE KEY UPDATE attempts=IF(reset_at<=UTC_TIMESTAMP(),1,attempts+1),reset_at=IF(reset_at<=UTC_TIMESTAMP(),VALUES(reset_at),reset_at)','si',[$key,$seconds]);
+    $row = query('SELECT attempts,GREATEST(1,TIMESTAMPDIFF(SECOND,UTC_TIMESTAMP(),reset_at)) AS retry_after FROM puls_auth_rate_limits WHERE rate_key=?','s',[$key])->get_result()->fetch_assoc();
     if ((int)$row['attempts'] > $limit) {
         header('Retry-After: '.(int)$row['retry_after']);
         respond(['error'=>'För många försök. Vänta en stund och försök igen.'],429);
     }
-    if (random_int(1,100) === 1) query('DELETE FROM auth_rate_limits WHERE reset_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 DAY)');
+    if (random_int(1,100) === 1) query('DELETE FROM puls_auth_rate_limits WHERE reset_at<DATE_SUB(UTC_TIMESTAMP(),INTERVAL 1 DAY)');
 }
 
 function request_ip(): string {
@@ -75,9 +75,9 @@ function register_user(array $data): void {
     $db = database();
     $db->begin_transaction();
     try {
-        query('INSERT INTO users (name,email,password_hash,owner_hash) VALUES (?,?,?,?)','ssss',[$p['name'],$p['email'],$passwordHash,$accountOwner]);
+        query('INSERT INTO puls_users (name,email,password_hash,owner_hash) VALUES (?,?,?,?)','ssss',[$p['name'],$p['email'],$passwordHash,$accountOwner]);
         $id = (int)$db->insert_id;
-        query('UPDATE questions SET owner_hash=? WHERE owner_hash=?','ss',[$accountOwner,$guestOwner]);
+        query('UPDATE puls_questions SET owner_hash=? WHERE owner_hash=?','ss',[$accountOwner,$guestOwner]);
         $db->commit();
     } catch (mysqli_sql_exception $e) {
         $db->rollback();
@@ -101,13 +101,13 @@ function login_user(array $data): void {
     $password = validate_password($data['password'] ?? null,false);
     if (isset($data['claimGuest']) && !is_bool($data['claimGuest'])) throw new InvalidArgumentException('Ogiltigt val för gästfrågor.');
     rate_limit('login-email',$email,15,900);
-    $user = query('SELECT id,name,email,password_hash,owner_hash,theme_json FROM users WHERE email=?','s',[$email])->get_result()->fetch_assoc();
+    $user = query('SELECT id,name,email,password_hash,owner_hash,theme_json FROM puls_users WHERE email=?','s',[$email])->get_result()->fetch_assoc();
     // Samma bcrypt-kostnad även när e-postadressen saknas.
     $hash = $user ? $user['password_hash'] : '$2y$12$7QJYnSkSbBf6fyH42sVrK.npS3EiU.EJGexFYZPmNzh29U09xALUi';
     if (!password_verify($password,$hash) || !$user) respond(['error'=>'Fel e-postadress eller lösenord.'],401);
-    if (password_needs_rehash($user['password_hash'],PASSWORD_BCRYPT,['cost'=>12])) query('UPDATE users SET password_hash=? WHERE id=?','si',[password_hash($password,PASSWORD_BCRYPT,['cost'=>12]),(int)$user['id']]);
+    if (password_needs_rehash($user['password_hash'],PASSWORD_BCRYPT,['cost'=>12])) query('UPDATE puls_users SET password_hash=? WHERE id=?','si',[password_hash($password,PASSWORD_BCRYPT,['cost'=>12]),(int)$user['id']]);
     if (($data['claimGuest'] ?? false) === true) {
-        query('UPDATE questions SET owner_hash=? WHERE owner_hash=?','ss',[$user['owner_hash'],guest_owner_hash()]);
+        query('UPDATE puls_questions SET owner_hash=? WHERE owner_hash=?','ss',[$user['owner_hash'],guest_owner_hash()]);
         renew_guest_owner();
     }
     authenticate_user($user);

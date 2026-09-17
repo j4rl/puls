@@ -23,7 +23,11 @@ assert.deepEqual(grouped({kind:'word'},['Å','å','å']),[{label:'å',count:3}]
 assert.ok(escapeHTML('<img src=x onerror=alert(1)>').startsWith('&lt;img'));
 assert.ok(!renderChart({kind:'sentence',view:'cards'},['<script>alert(1)</script>']).includes('<script>'));
 assert.ok(renderChart({kind:'number',min:-5,max:5,view:'thermo'},[-5,0,5]).includes('Medelvärde'));
+assert.ok(renderChart({kind:'number',min:0,max:10,view:'bars'},[4,5,6]).includes('Konvergens'));
 assert.ok(renderChart({kind:'choice',options:['A','B'],view:'pie'},['A','B']).includes('conic-gradient'));
+assert.ok(renderChart({kind:'choice',options:['A','B'],view:'pie'},['A','A','B']).includes('Svarspuls'));
+assert.ok(renderChart({kind:'ranking',options:['A','B'],view:'bars'},[['A','B'],['B','A']]).includes('ranking-race'));
 assert.ok(renderChart({kind:'matrix',options:{rows:['R1'],columns:['Nej','Ja']},view:'matrix'},[{'R1':'Ja'}]).includes('Ja'));
+assert.ok(renderChart({kind:'sentence',view:'cards'},['Snabba möten fungerar','Snabba möten hjälper','Långa möten tröttar']).includes('Återkommande teman'));
 assert.ok(renderChart(q,[]).includes('Inga svar ännu'));
 console.log('PASS: histogram boundaries, multi-select counts, Unicode grouping, HTML escaping, thermometer, pie and empty results.');

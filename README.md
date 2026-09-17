@@ -4,7 +4,7 @@ En svensk webbapp för att skapa frågor och frågeset, dela en QR-kod eller sex
 
 ## Kör på den här datorn
 
-Appen är installerad i `C:\xampp\htdocs\puls`. Databasen `puls` och en separat databasanvändare `puls_app` är skapade. Den lokala anslutningen finns i `config.php`, som ignoreras av Git och är spärrad från webbåtkomst.
+Appen är installerad i `C:\xampp\htdocs\puls`. Databasen `puls` och en separat databasanvändare `puls_app` är skapade. Den lokala anslutningen finns i `config.php`, som ignoreras av Git och är spärrad från webbåtkomst. Alla appens tabeller använder prefixet `puls_`, så schemafilen kan importeras i en valfri databas utan generiska tabellnamnskrockar.
 
 1. Starta **Apache** och **MySQL** i XAMPP om de inte redan körs. Om MariaDB redan kör som Windows-tjänst på port 3306 ska du använda den befintliga tjänsten.
 2. Öppna **http://localhost/puls/**.
@@ -37,6 +37,7 @@ För lokal databasadministration använder skriptet `root` utan lösenord enligt
 - QR-kod, deltagarlänk, kopiering, helskärm, paus/återupptagning och dolda resultat.
 - Utseende kan ställas in separat för en fråga eller ett frågeset. Färger, bakgrund, förgrundsbild och logotyp visas direkt i den inbyggda förhandsvisningen och följer med till deltagar- och Live-vyn.
 - Resultat hämtas varannan sekund. Deltagarvyn följer pausning automatiskt.
+- Live-resultaten visar svarspuls, konvergens och förändringar över tid. Rangordningar animeras som ett race, matriser visas som värmekartor och fritext/ord grupperas efter återkommande teman.
 - Upp till 5 000 svar per fråga och ett svar per webbläsare. Det är ett cookieskydd; nya webbläsare eller raderade cookies kan ge nya svar.
 - Frågeformuläret, förhandsvisningen och egna frågor visas först efter inloggning. Deltagare kan svara utan konto via en kod eller deltagarlänk.
 - Äldre gästfrågor hör till skaparens webbläsarcookie och kan fortfarande nås via sina resultatadresser. Registrering flyttar den webbläsarens äldre gästfrågor till det nya kontot. Vid inloggning på ett befintligt konto väljer användaren uttryckligen om gästfrågorna ska flyttas.
@@ -57,7 +58,7 @@ I automatiskt läge går varje deltagare vidare i egen takt till sin första obe
 
 Skaparen kan välja vilken frågas resultat som visas utan att ändra deltagarnas fråga. Utskrift/PDF gäller den valda frågans resultat. Frågesetet visas som en post i listan; borttagning efter bekräftelse raderar alla frågor och svar i setet. Varje fråga räknas mot gränsen för nya frågor per timme och har sin egen svarsgräns.
 
-Vid uppgradering behöver **database.sql importeras igen** innan den nya koden används. Det lägger till `question_sets`, `set_questions`, `set_designs`, `set_design_assets`, `question_designs` och `question_design_assets` utan att ändra befintliga frågor eller svar. Lokalt görs det med `scripts/setup-local.php` enligt ovan. Webbappen behöver inga nya databasrättigheter.
+Vid uppgradering eller ny installation behöver **database.sql importeras** i den databas som anges i `config.php`. Filen skapar alla tio tabeller med prefixet `puls_` och innehåller inget databasnamn eller `USE`-kommando. Lokalt görs det med `scripts/setup-local.php` enligt ovan. Webbappen behöver inga nya databasrättigheter. Befintliga oprefixade tabeller migreras inte automatiskt; exportera eller flytta data separat om en redan använd installation ska behålla sina frågor och svar.
 
 ### Eget utseende för varje set
 

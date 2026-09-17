@@ -86,7 +86,7 @@ function require_write(int $maxBytes = 16384): array {
 }
 function find_question(string $code, bool $lock = false): array {
     if (!preg_match('/^[0-9]{6}$/D',$code)) respond(['error'=>'Ange en sexsiffrig kod.'],400);
-    $row = query('SELECT * FROM questions WHERE code=?'.($lock?' FOR UPDATE':''),'s',[$code])->get_result()->fetch_assoc();
+    $row = query('SELECT * FROM puls_questions WHERE code=?'.($lock?' FOR UPDATE':''),'s',[$code])->get_result()->fetch_assoc();
     if (!$row) respond(['error'=>'Ingen fråga hittades med den koden.'],404);
     return $row;
 }

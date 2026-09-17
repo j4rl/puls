@@ -23,7 +23,7 @@ $rateEmail = $prefix.'-limit@example.test';
 $rateKeys = [];
 foreach ([['create-ip',$testIp],['register-ip',$testIp],['login-ip',$testIp],['login-email',$email],['login-ip',$rateIp],['login-email',$rateEmail]] as [$scope,$identity]) {
     $key = hash('sha256', $scope."\0".$identity);
-    $stmt = $db->prepare('SELECT rate_key FROM auth_rate_limits WHERE rate_key=?');
+    $stmt = $db->prepare('SELECT rate_key FROM puls_auth_rate_limits WHERE rate_key=?');
     $stmt->bind_param('s', $key); $stmt->execute();
     if ($stmt->get_result()->num_rows === 0) $rateKeys[] = $key;
 }
@@ -99,7 +99,7 @@ function seedLegacyGuestQuestion(array $client): string {
     for ($attempt = 0; $attempt < 8; $attempt++) {
         $code = (string)random_int(100000, 999999);
         try {
-            $stmt = $db->prepare("INSERT INTO questions (code,owner_hash,title,kind,options_json,min_value,max_value,result_view) VALUES (?,?,?,'choice',?,-2.5,2.5,'bars')");
+            $stmt = $db->prepare("INSERT INTO puls_questions (code,owner_hash,title,kind,options_json,min_value,max_value,result_view) VALUES (?,?,?,'choice',?,-2.5,2.5,'bars')");
             $stmt->bind_param('ssss', $code, $ownerHash, $title, $options); $stmt->execute();
             $created[] = $code;
             return $code;
@@ -129,7 +129,7 @@ try {
     $registered = request($owner, 'register', ['name'=>'Integrationstest', 'email'=>$email, 'password'=>$password], [], 201);
     check($registered['user']['email'] === $email && $csrfBeforeLogin !== $owner['csrf'], 'Registration signs in and rotates CSRF');
     check(!isset($registered['user']['password_hash']) && !isset($registered['user']['owner_hash']), 'Account responses omit credentials and ownership secrets');
-    $stmt = $db->prepare('SELECT password_hash FROM users WHERE email=?');
+    $stmt = $db->prepare('SELECT password_hash FROM puls_users WHERE email=?');
     $stmt->bind_param('s', $email); $stmt->execute();
     $hash = $stmt->get_result()->fetch_assoc()['password_hash'];
     check($hash !== $password && password_verify($password, $hash), 'Account password is stored as a verified one-way hash');
@@ -208,7 +208,7 @@ try {
     request($nonOwner, 'register', ['name'=>'Annat testkonto', 'email'=>$otherEmail, 'password'=>$password], [], 201);
     $deleteCode = createQuestion($owner, 'choice');
     request($voter, 'answer', ['value'=>'Öva'], ['code'=>$deleteCode], 201);
-    $stmt = $db->prepare('SELECT id FROM questions WHERE code=?');
+    $stmt = $db->prepare('SELECT id FROM puls_questions WHERE code=?');
     $stmt->bind_param('s', $deleteCode); $stmt->execute();
     $deleteId = (int)$stmt->get_result()->fetch_assoc()['id'];
     request($owner, 'delete', null, ['code'=>$deleteCode], 405);
@@ -220,7 +220,7 @@ try {
     check(in_array($deleteCode, array_column(request($owner, 'list')['questions'], 'code'), true), 'Rejected deletion leaves the question in its owner’s list');
     check(request($owner, 'delete', [], ['code'=>$deleteCode])['ok'] === true, 'Signed-in owner can delete an open question');
     check(!in_array($deleteCode, array_column(request($owner, 'list')['questions'], 'code'), true), 'Deleted question disappears from its owner’s list');
-    $stmt = $db->prepare('SELECT COUNT(*) AS n FROM answers WHERE question_id=?');
+    $stmt = $db->prepare('SELECT COUNT(*) AS n FROM puls_answers WHERE question_id=?');
     $stmt->bind_param('i', $deleteId); $stmt->execute();
     check((int)$stmt->get_result()->fetch_assoc()['n'] === 0, 'Deleting a question also deletes its answers');
     request($voter, 'question', null, ['code'=>$deleteCode], 404);
@@ -248,16 +248,16 @@ try {
     echo "All HTTP integration checks passed.\n";
 } finally {
     foreach ($created as $code) {
-        $stmt = $db->prepare('DELETE FROM questions WHERE code=? AND title LIKE ?');
+        $stmt = $db->prepare('DELETE FROM puls_questions WHERE code=? AND title LIKE ?');
         $title = $prefix.'%';
         $stmt->bind_param('ss', $code, $title); $stmt->execute();
     }
     foreach ([$email, $otherEmail] as $createdEmail) {
-        $stmt = $db->prepare('DELETE FROM users WHERE email=?');
+        $stmt = $db->prepare('DELETE FROM puls_users WHERE email=?');
         $stmt->bind_param('s', $createdEmail); $stmt->execute();
     }
     foreach ($rateKeys as $key) {
-        $stmt = $db->prepare('DELETE FROM auth_rate_limits WHERE rate_key=?');
+        $stmt = $db->prepare('DELETE FROM puls_auth_rate_limits WHERE rate_key=?');
         $stmt->bind_param('s', $key); $stmt->execute();
     }
     foreach ($clients as $curl) curl_close($curl);

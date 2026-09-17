@@ -490,6 +490,166 @@ small,
     justify-content: center
 }
 
+.livepulse {
+    display: grid;
+    grid-template-columns: auto auto auto 1fr;
+    align-items: center;
+    gap: 8px;
+    margin: 16px 0 4px;
+    color: var(--muted);
+    font-size: 13px
+}
+
+.livepulse strong {
+    color: var(--text)
+}
+
+.livepulse small {
+    justify-self: end
+}
+
+.livepulse-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--success);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--success) 45%, transparent);
+    animation: live-pulse 1.8s ease-out infinite
+}
+
+.livepulse-bars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 18px
+}
+
+.livepulse-bars i {
+    width: 3px;
+    height: calc(5px + var(--pulse-intensity) * 10px);
+    border-radius: 2px;
+    background: var(--primary);
+    animation: pulse-bar 1.2s ease-in-out infinite alternate
+}
+
+.livepulse-bars i:nth-child(2) {
+    animation-delay: .18s
+}
+
+.livepulse-bars i:nth-child(3) {
+    animation-delay: .36s
+}
+
+@keyframes live-pulse {
+    70% {
+        box-shadow: 0 0 0 7px transparent
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 transparent
+    }
+}
+
+@keyframes pulse-bar {
+    to {
+        transform: scaleY(.45)
+    }
+}
+
+.convergence {
+    margin: 18px 0;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-muted)
+}
+
+.convergence-head,
+.cluster-heading {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center
+}
+
+.convergence-track {
+    height: 8px;
+    margin: 9px 0 5px;
+    border-radius: 99px;
+    background: var(--border);
+    overflow: hidden
+}
+
+.convergence-track span {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+    background: var(--success);
+    transition: width .5s ease
+}
+
+.convergence small,
+.cluster-heading small {
+    color: var(--muted)
+}
+
+.ranking-race .barfill {
+    transition: width .7s cubic-bezier(.2, .8, .2, 1)
+}
+
+.text-clusters {
+    margin: 20px 0;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-muted)
+}
+
+.cluster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 8px;
+    margin-top: 10px
+}
+
+.cluster {
+    min-width: 0;
+    padding: 10px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border)
+}
+
+.cluster strong {
+    color: var(--primary)
+}
+
+.cluster b {
+    float: right
+}
+
+.cluster p {
+    margin: 8px 0 0;
+    color: var(--muted);
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .livepulse-dot,
+    .livepulse-bars i {
+        animation: none
+    }
+
+    .barfill,
+    .convergence-track span {
+        transition: none
+    }
+}
+
 .baritem {
     margin: 9px 0
 }

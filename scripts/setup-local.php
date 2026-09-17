@@ -49,7 +49,7 @@ try {
     }
     echo "Puls är installerat. Databas: puls. Databasanvändare: puls_app.\n";
     echo "Öppna http://localhost/puls/ när Apache är igång i XAMPP.\n";
-    echo "Befintliga frågor och svar har behållits.\n";
+    echo "Befintliga databastabeller har behållits; appen använder nu tabeller med prefixet puls_.\n";
 } catch (Throwable $e) {
     fwrite(STDERR, "Installationen avbröts: ".$e->getMessage()."\n");
     exit(1);

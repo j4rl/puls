@@ -31,16 +31,16 @@ function validate_set_design($data,bool $existing=false): array {
 function save_set_design(int $id,array $design): void {
     foreach ($design['images'] as $slot=>$image) {
         if ($image==='keep')continue;
-        query('DELETE FROM set_design_assets WHERE set_id=? AND slot=?','is',[$id,$slot]);
-        if ($image!==null) query('INSERT INTO set_design_assets (set_id,slot,mime,content) VALUES (?,?,?,?)','isss',[$id,$slot,$image['mime'],$image['content']]);
+        query('DELETE FROM puls_set_design_assets WHERE set_id=? AND slot=?','is',[$id,$slot]);
+        if ($image!==null) query('INSERT INTO puls_set_design_assets (set_id,slot,mime,content) VALUES (?,?,?,?)','isss',[$id,$slot,$image['mime'],$image['content']]);
     }
-    $slots=query('SELECT slot FROM set_design_assets WHERE set_id=?','i',[$id])->get_result()->fetch_all(MYSQLI_ASSOC);
+    $slots=query('SELECT slot FROM puls_set_design_assets WHERE set_id=?','i',[$id])->get_result()->fetch_all(MYSQLI_ASSOC);
     $json=json_encode(['colors'=>$design['colors'],'images'=>array_column($slots,'slot')],JSON_THROW_ON_ERROR);
-    query('INSERT INTO set_designs (set_id,design_json,version) VALUES (?,?,?) ON DUPLICATE KEY UPDATE design_json=VALUES(design_json),version=VALUES(version)','iss',[$id,$json,bin2hex(random_bytes(16))]);
+    query('INSERT INTO puls_set_designs (set_id,design_json,version) VALUES (?,?,?) ON DUPLICATE KEY UPDATE design_json=VALUES(design_json),version=VALUES(version)','iss',[$id,$json,bin2hex(random_bytes(16))]);
 }
 
 function public_set_design(int $id,string $code): ?array {
-    $row=query('SELECT design_json,version FROM set_designs WHERE set_id=?','i',[$id])->get_result()->fetch_assoc();
+    $row=query('SELECT design_json,version FROM puls_set_designs WHERE set_id=?','i',[$id])->get_result()->fetch_assoc();
     if (!$row)return null;
     $data=json_decode($row['design_json'],true,32,JSON_THROW_ON_ERROR);
     $images=[];
@@ -51,7 +51,7 @@ function public_set_design(int $id,string $code): ?array {
 function serve_set_image(string $code,int $id): void {
     $slot=$_GET['slot']??null;
     if (!in_array($slot,['background','foreground','logo'],true)) respond(['error'=>'Okänd bild.'],400);
-    $row=query('SELECT mime,content FROM set_design_assets WHERE set_id=? AND slot=?','is',[$id,$slot])->get_result()->fetch_assoc();
+    $row=query('SELECT mime,content FROM puls_set_design_assets WHERE set_id=? AND slot=?','is',[$id,$slot])->get_result()->fetch_assoc();
     if (!$row)respond(['error'=>'Bilden finns inte.'],404);
     header('Content-Type: '.$row['mime']);
     header('Content-Length: '.strlen($row['content']));
@@ -63,16 +63,16 @@ function serve_set_image(string $code,int $id): void {
 function save_question_design(int $id,array $design): void {
     foreach ($design['images'] as $slot=>$image) {
         if ($image==='keep')continue;
-        query('DELETE FROM question_design_assets WHERE question_id=? AND slot=?','is',[$id,$slot]);
-        if ($image!==null) query('INSERT INTO question_design_assets (question_id,slot,mime,content) VALUES (?,?,?,?)','isss',[$id,$slot,$image['mime'],$image['content']]);
+        query('DELETE FROM puls_question_design_assets WHERE question_id=? AND slot=?','is',[$id,$slot]);
+        if ($image!==null) query('INSERT INTO puls_question_design_assets (question_id,slot,mime,content) VALUES (?,?,?,?)','isss',[$id,$slot,$image['mime'],$image['content']]);
     }
-    $slots=query('SELECT slot FROM question_design_assets WHERE question_id=?','i',[$id])->get_result()->fetch_all(MYSQLI_ASSOC);
+    $slots=query('SELECT slot FROM puls_question_design_assets WHERE question_id=?','i',[$id])->get_result()->fetch_all(MYSQLI_ASSOC);
     $json=json_encode(['colors'=>$design['colors'],'images'=>array_column($slots,'slot')],JSON_THROW_ON_ERROR);
-    query('INSERT INTO question_designs (question_id,design_json,version) VALUES (?,?,?) ON DUPLICATE KEY UPDATE design_json=VALUES(design_json),version=VALUES(version)','iss',[$id,$json,bin2hex(random_bytes(16))]);
+    query('INSERT INTO puls_question_designs (question_id,design_json,version) VALUES (?,?,?) ON DUPLICATE KEY UPDATE design_json=VALUES(design_json),version=VALUES(version)','iss',[$id,$json,bin2hex(random_bytes(16))]);
 }
 
 function public_question_design(int $id,string $code): ?array {
-    $row=query('SELECT design_json,version FROM question_designs WHERE question_id=?','i',[$id])->get_result()->fetch_assoc();
+    $row=query('SELECT design_json,version FROM puls_question_designs WHERE question_id=?','i',[$id])->get_result()->fetch_assoc();
     if (!$row)return null;
     $data=json_decode($row['design_json'],true,32,JSON_THROW_ON_ERROR);$images=[];
     foreach ($data['images'] as $slot) $images[$slot]='api.php?'.http_build_query(['action'=>'question-image','code'=>$code,'slot'=>$slot,'v'=>$row['version']]);
@@ -82,7 +82,7 @@ function public_question_design(int $id,string $code): ?array {
 function serve_question_image(string $code,int $id): void {
     $slot=$_GET['slot']??null;
     if (!in_array($slot,['background','foreground','logo'],true)) respond(['error'=>'Okänd bild.'],400);
-    $row=query('SELECT mime,content FROM question_design_assets WHERE question_id=? AND slot=?','is',[$id,$slot])->get_result()->fetch_assoc();
+    $row=query('SELECT mime,content FROM puls_question_design_assets WHERE question_id=? AND slot=?','is',[$id,$slot])->get_result()->fetch_assoc();
     if (!$row)respond(['error'=>'Bilden finns inte.'],404);
     header('Content-Type: '.$row['mime']);header('Content-Length: '.strlen($row['content']));header('Content-Disposition: inline');header("Content-Security-Policy: default-src 'none'; sandbox");echo $row['content'];exit;
 }

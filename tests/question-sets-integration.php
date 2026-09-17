@@ -8,7 +8,7 @@ function createTestSet(string $progression,int $size=3): array {
     for($i=0;$i<$size;$i++) $questions[]=['title'=>$prefix.' fråga '.($i+1),'kind'=>'yesno','options'=>[],'view'=>'pie'];
     $code=request($owner,'create-set',['title'=>$prefix.' set','progression'=>$progression,'questions'=>$questions],[],201)['code'];
     $created[]=$code;
-    $stmt=$db->prepare('SELECT q.code FROM set_questions m JOIN questions root ON root.id=m.set_id JOIN questions q ON q.id=m.question_id WHERE root.code=?');
+    $stmt=$db->prepare('SELECT q.code FROM puls_set_questions m JOIN puls_questions root ON root.id=m.set_id JOIN puls_questions q ON q.id=m.question_id WHERE root.code=?');
     $stmt->bind_param('s',$code);$stmt->execute();
     foreach($stmt->get_result()->fetch_all(MYSQLI_ASSOC) as $row)$created[]=$row['code'];
     return request($owner,'results',null,['code'=>$code]);
@@ -40,7 +40,7 @@ request($nonOwner,'update',['open'=>false],['code'=>$setCode],403);
 request($nonOwner,'delete',[],['code'=>$setCode],403);
 $list=request($owner,'list')['questions'];$listed=array_values(array_filter($list,static fn($q)=>$q['code']===$setCode));
 check(count($listed)===1 && $listed[0]['kind']==='set' && (int)$listed[0]['question_count']===3 && (int)$listed[0]['answer_count']===3,'Owner list groups all set questions and answer counts');
-$internalCode=$db->query('SELECT code FROM questions WHERE id='.(int)$ids[1])->fetch_assoc()['code'];
+$internalCode=$db->query('SELECT code FROM puls_questions WHERE id='.(int)$ids[1])->fetch_assoc()['code'];
 check(!in_array($internalCode,array_column($list,'code'),true),'Internal member questions are not listed separately');
 request($voter,'question',null,['code'=>$internalCode],404);
 request($voter,'answer',['value'=>'Ja'],['code'=>$internalCode],404);
@@ -97,7 +97,7 @@ foreach([[$setCode,$ids],[$hostCode,$hostIds],[$singleCode,[$single['question'][
     request($owner,'delete',[],['code'=>$removeCode]);
     request($voter,'question',null,['code'=>$removeCode],404);
     $idsSql=implode(',',array_map('intval',$removeIds));
-    check((int)$db->query('SELECT COUNT(*) AS n FROM questions WHERE id IN ('.$idsSql.')')->fetch_assoc()['n']===0,'Deleting a set removes every member question');
-    check((int)$db->query('SELECT COUNT(*) AS n FROM answers WHERE question_id IN ('.$idsSql.')')->fetch_assoc()['n']===0,'Deleting a set cascades to every answer');
+    check((int)$db->query('SELECT COUNT(*) AS n FROM puls_questions WHERE id IN ('.$idsSql.')')->fetch_assoc()['n']===0,'Deleting a set removes every member question');
+    check((int)$db->query('SELECT COUNT(*) AS n FROM puls_answers WHERE question_id IN ('.$idsSql.')')->fetch_assoc()['n']===0,'Deleting a set cascades to every answer');
 }
 check(true,'Question-set HTTP checks passed');
