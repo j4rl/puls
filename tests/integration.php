@@ -231,6 +231,7 @@ try {
     request($owner, 'update', ['open'=>false], ['code'=>$guestCode]);
     check(request($owner, 'delete', [], ['code'=>$guestCode])['ok'] === true, 'Signed-in owner can also delete a paused, claimed legacy question');
     require __DIR__.'/question-sets-integration.php';
+    require __DIR__.'/saved-items-integration.php';
     $limited = client($rateIp);
     request($limited, 'bootstrap');
     $attemptLimit = min(15, max(1, (int)($config['max_login_attempts_per_quarter_hour'] ?? 30)));

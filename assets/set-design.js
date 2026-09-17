@@ -48,7 +48,10 @@ export function createSetDesignEditor(initial=null){
   images={};pending.clear();problems={};colors={...defaults};custom=false;preview();
  });
  preview();
- return {element,refresh:preview,value(){
+ return {element,refresh:preview,load(design=null){
+  for(const key of Object.keys(slots)){versions[key]=(versions[key]||0)+1;find(`[data-image="${key}"]`).value='';}
+  colors={...defaults,...design?.colors};custom=Boolean(design?.colors);images={...design?.images};pending.clear();problems={};preview();
+ },value(){
   if(pending.size)throw Error('Vänta tills bilderna har lästs in.');
   if(Object.keys(problems).length)throw Error(Object.values(problems).join(' '));
   return {colors:custom?{...colors}:null,images:Object.fromEntries(Object.keys(slots).map(key=>[key,images[key]?(images[key].startsWith('data:')?images[key]:'keep'):null]))};

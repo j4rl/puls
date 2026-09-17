@@ -98,3 +98,24 @@ CREATE TABLE IF NOT EXISTS puls_question_design_assets (
     PRIMARY KEY (question_id,slot),
     CONSTRAINT puls_fk_question_design_asset FOREIGN KEY (question_id) REFERENCES puls_questions(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS puls_saved_items (
+    id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+    owner_hash CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    item_type VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    title VARCHAR(240) NOT NULL,
+    data_json MEDIUMTEXT NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    PRIMARY KEY (id),
+    KEY idx_saved_items_owner_updated (owner_hash, updated_at)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Varje aktivering är en egen fråga eller ett eget set med separata svar.
+-- question_id pekar på setets första fråga när körningen är ett frågeset.
+CREATE TABLE IF NOT EXISTS puls_saved_item_runs (
+    saved_item_id BIGINT UNSIGNED NOT NULL,
+    question_id BIGINT UNSIGNED NOT NULL,
+    PRIMARY KEY (saved_item_id,question_id),
+    UNIQUE KEY uq_saved_item_run_question (question_id),
+    CONSTRAINT puls_fk_saved_run_item FOREIGN KEY (saved_item_id) REFERENCES puls_saved_items(id) ON DELETE CASCADE,
+    CONSTRAINT puls_fk_saved_run_question FOREIGN KEY (question_id) REFERENCES puls_questions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

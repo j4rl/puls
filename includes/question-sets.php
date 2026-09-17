@@ -6,40 +6,7 @@ function find_set_membership(string $code): ?array {
 }
 
 function create_question_set(): void {
-    global $config;
-    $data=require_write(5242880);
-    $user=require_user('Logga in för att skapa ett frågeset.');
-    $design=isset($data['design'])?validate_set_design($data['design']):null;
-    $data=validate_question_set($data);
-    rate_limit('create-ip',request_ip(),max(1,(int)($config['max_questions_per_ip_per_hour']??120)),3600);
-    $db=database();$db->begin_transaction();
-    try {
-        // Serialize creation for this owner before checking the per-question quota.
-        query('SELECT id FROM puls_users WHERE id=? FOR UPDATE','i',[(int)$user['id']]);
-        $count=query('SELECT COUNT(*) AS n FROM puls_questions WHERE owner_hash=? AND created_at>DATE_SUB(NOW(),INTERVAL 1 HOUR)','s',[$user['owner_hash']])->get_result()->fetch_assoc();
-        if ((int)$count['n']+count($data['questions'])>(int)($config['max_questions_per_hour']??30)) {
-            $db->rollback();respond(['error'=>'För många nya frågor denna timme. Välj färre frågor eller försök senare.'],429);
-        }
-        $setId=0;$rootCode='';
-        foreach ($data['questions'] as $position=>$p) {
-            $id=0;
-            for ($attempt=0;$attempt<8;$attempt++) {
-                $newCode=(string)random_int(100000,999999);
-                try {
-                    query('INSERT INTO puls_questions (code,owner_hash,title,kind,options_json,min_value,max_value,result_view) VALUES (?,?,?,?,?,?,?,?)','sssssdds',[$newCode,$user['owner_hash'],$p['title'],$p['kind'],json_encode($p['options'],JSON_UNESCAPED_UNICODE),$p['min'],$p['max'],$p['view']]);
-                    $id=(int)$db->insert_id;break;
-                } catch (mysqli_sql_exception $e) {if ($e->getCode()!==1062) throw $e;}
-            }
-            if (!$id) throw new RuntimeException('Kunde inte tilldela en frågekod.');
-            if ($position===0) {
-                $setId=$id;$rootCode=$newCode;
-                query('INSERT INTO puls_question_sets (id,title,progression) VALUES (?,?,?)','iss',[$setId,$data['title'],$data['progression']]);
-            }
-            query('INSERT INTO puls_set_questions (set_id,question_id,position) VALUES (?,?,?)','iii',[$setId,$id,$position]);
-        }
-        if ($design!==null)save_set_design($setId,$design);
-        $db->commit();respond(['code'=>$rootCode],201);
-    } catch (Throwable $e) {$db->rollback();throw $e;}
+    create_live_item('set',require_write(5242880));
 }
 
 function set_questions(int $id): array {

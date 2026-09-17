@@ -24,6 +24,7 @@ async function session({width=1440,height=1000,theme='light',signedIn=true}={}){
   state.requests.push({action,code:url.searchParams.get('code'),method:request.method(),data:request.method()==='POST'?request.postDataJSON():null,csrf:request.headers()['x-csrf-token']});
   if(action==='bootstrap')return route.fulfill(json({csrf:'test-token',baseUrl:base,maxAnswers:5000,user:signedIn?user:null}));
   if(action==='list')return route.fulfill(json({questions:state.questions}));
+  if(action==='saved-list')return route.fulfill(json({items:[]}));
   if(action==='delete'){
    assert.equal(signedIn,true,'Only signed-in users may request deletion.');
    if(state.failDelete){state.failDelete=false;return route.fulfill(json({error:'Frågan kunde inte tas bort. Försök igen.'},503));}

@@ -32,6 +32,7 @@ För lokal databasadministration använder skriptet `root` utan lösenord enligt
 
 - Flerval, ja/nej, kryssrutor, skala, rangordning, matris, tal med valfritt intervall, meningar och enstaka ord.
 - Frågeset med 1–20 frågor, valfri blandning av frågetyper och en gemensam deltagarkod.
+- Spara frågor och frågeset utan att starta dem. Öppna en sparad post för att redigera innehållet eller se dess tidigare körningar. Varje **Aktivera** skapar en ny körning med egen deltagarkod, egna svar och egen progression.
 - Staplar, cirkeldiagram, termometer, ordmoln, rangordningsresultat, matris och textsvar.
 - **Skriv ut / spara PDF** i resultatvyn öppnar webbläsarens utskriftsdialog. Välj skrivare eller **Spara som PDF**. Utskriften innehåller frågan, antal svar, tidpunkt och resultatet, även när det är dolt på skärmen. Alla textsvar och alla ords antal tas med.
 - QR-kod, deltagarlänk, kopiering, helskärm, paus/återupptagning och dolda resultat.
@@ -42,23 +43,26 @@ För lokal databasadministration använder skriptet `root` utan lösenord enligt
 - Frågeformuläret, förhandsvisningen och egna frågor visas först efter inloggning. Deltagare kan svara utan konto via en kod eller deltagarlänk.
 - Äldre gästfrågor hör till skaparens webbläsarcookie och kan fortfarande nås via sina resultatadresser. Registrering flyttar den webbläsarens äldre gästfrågor till det nya kontot. Vid inloggning på ett befintligt konto väljer användaren uttryckligen om gästfrågorna ska flyttas.
 - Kontoägda resultat är tillgängliga på enheter där ägaren loggar in. Utloggning återger inte åtkomst via gamla gästcookies.
-- Inloggade användare kan ta bort egna frågor från **Dina publicerade frågor**. Efter bekräftelse raderas frågan och alla dess svar permanent, och deltagarlänken slutar fungera.
+- Inloggade användare kan ta bort enskilda körningar från historiken. Efter bekräftelse raderas körningen och alla dess svar permanent, och deltagarlänken slutar fungera. Den sparade frågan eller frågesetet och övriga körningar finns kvar.
 - Inloggningen går ut efter 12 timmars inaktivitet eller högst sju dagar. Webbläsaren använder en sessionscookie.
 
 ## Frågeset
 
 1. Logga in och markera **Samla frågor i ett frågeset** i frågeformuläret.
 2. Ge setet ett namn och välj när nästa fråga ska visas: **Automatiskt efter deltagarens svar** eller **Jag bestämmer när nästa fråga öppnas**.
-3. Skriv frågorna med **Lägg till fråga**. Klicka på en fråga för att redigera den och använd **Flytta upp/ned** för att ändra ordningen före publicering.
-4. Välj **Publicera frågeset** och dela koden eller QR-länken en gång.
+3. Skriv frågorna med **Lägg till fråga**. Klicka på en fråga för att redigera den och använd **Flytta upp/ned** för att ändra ordningen.
+4. Välj **Spara frågeset**. Inga frågor öppnas för deltagare när du sparar.
+5. Öppna setet i listan och välj **Aktivera** när det ska användas. Dela den nya körningens kod eller QR-länk en gång.
+
+Varje aktivering sparar en kopia av frågorna, ordningen, inställningarna och utseendet. Du kan redigera det sparade setet inför nästa tillfälle utan att ändra innehållet eller svaren i tidigare körningar. Historiken visar datum, deltagarkod och antal svar för varje körning; öppna en körning för dess resultat. Samma arbetsflöde gäller enstaka frågor. För äldre körningar finns **Redigera och återanvänd**, som skapar en sparad fråga eller ett sparat set och behåller den ursprungliga körningen i dess historik.
 
 I automatiskt läge går varje deltagare vidare i egen takt till sin första obesvarade fråga. I skaparstyrt läge väntar deltagaren efter sitt svar. Skaparen väljer **Öppna nästa fråga** för att byta fråga för alla. Deltagare som ansluter sent börjar på den aktuella frågan; tidigare frågor hoppas över. **Avsluta frågeset** avslutar efter den sista frågan. Det går inte att gå tillbaka i deltagarnas frågeordning eller återöppna ett avslutat set.
 
-**Pausa svar** pausar hela setet. Progressionen sparas genom svaren och behålls när deltagaren laddar om sidan i samma webbläsare. Varje svar binds till ett fråge-ID så att sena svar aldrig sparas på nästa fråga. Setets innehåll och läge väljs före publicering.
+**Pausa svar** pausar hela körningen av setet. Progressionen sparas genom svaren och behålls när deltagaren laddar om sidan i samma webbläsare. Varje svar binds till ett fråge-ID så att sena svar aldrig sparas på nästa fråga. Setets innehåll och läge kopieras från det sparade setet vid aktivering.
 
-Skaparen kan välja vilken frågas resultat som visas utan att ändra deltagarnas fråga. Utskrift/PDF gäller den valda frågans resultat. Frågesetet visas som en post i listan; borttagning efter bekräftelse raderar alla frågor och svar i setet. Varje fråga räknas mot gränsen för nya frågor per timme och har sin egen svarsgräns.
+Skaparen kan välja vilken frågas resultat som visas utan att ändra deltagarnas fråga. Utskrift/PDF gäller den valda frågans resultat i den öppnade körningen. Frågesetet visas som en post i listan med sina körningar samlade i historiken. Borttagning av en körning efter bekräftelse raderar alla frågor och svar i just den körningen. Varje aktiverad fråga räknas mot gränsen för nya frågor per timme och har sin egen svarsgräns. Att spara eller redigera innehåll förbrukar inte denna gräns.
 
-Vid uppgradering eller ny installation behöver **database.sql importeras** i den databas som anges i `config.php`. Filen skapar alla tio tabeller med prefixet `puls_` och innehåller inget databasnamn eller `USE`-kommando. Lokalt görs det med `scripts/setup-local.php` enligt ovan. Webbappen behöver inga nya databasrättigheter. Befintliga oprefixade tabeller migreras inte automatiskt; exportera eller flytta data separat om en redan använd installation ska behålla sina frågor och svar.
+Vid uppgradering eller ny installation behöver **database.sql importeras** i den databas som anges i `config.php`. Filen skapar tabellerna med prefixet `puls_`, inklusive `puls_saved_items` för sparat innehåll och `puls_saved_item_runs` för kopplingen till körningar, och innehåller inget databasnamn eller `USE`-kommando. Importen behåller befintliga frågor och svar. Lokalt görs det med `scripts/setup-local.php` enligt ovan. Webbappen behöver inga nya databasrättigheter. Befintliga oprefixade tabeller migreras inte automatiskt; exportera eller flytta data separat om en redan använd installation ska behålla sina frågor och svar.
 
 ### Eget utseende för varje set
 
@@ -120,8 +124,10 @@ Utskrift och PDF testas med `node tests/frontend-print.mjs` i samma Playwright-m
 
 HTTP-testet inkluderar `tests/question-sets-integration.php`, som kontrollerar automatiska och skaparstyrda set, individuella framsteg, paus, behörigheter, blockerade framtida/sena svar, upprepade anrop, medlemskap och fullständig radering. `node tests/frontend-sets.mjs` testar hela flödet med Chromium och den lokala databasen, inklusive redigering, ordning, flera deltagare, omladdning, resultatval, PDF och mobilvy. Det skapar ett tillfälligt testkonto och tar bort kontots frågor och svar efteråt. Ange vid behov `PULS_PHP_PATH` till PHP; övriga Playwright-inställningar är desamma som ovan.
 
+HTTP-testet inkluderar även `tests/saved-items-integration.php`, som kontrollerar sparande utan körning, redigering, separata körningar och svar, historik, utseende, återanvändning av äldre körningar, behörigheter och aktiveringsgränser. `node tests/frontend-saved-items.mjs` testar motsvarande arbetsflöde i webbläsaren. Testerna använder egna tillfälliga konton och rensar sina testdata efteråt.
+
 Dessutom verifierades hela användarflödet i Chromium med en verklig export från theme.j4rl.se: registrering, temaimport, QR, mobilsvar, liveuppdatering, paus/återupptagning, flera webbläsare och utloggning i flera flikar. Ljus/mörkt läge testades även med blockerad ld-tjänst. Lokala skärmbilder och testresultat finns i den Git-ignorerade mappen `test-results/`.
 
 ## Fortsatt utveckling
 
-Lämpliga nästa steg är e-postverifiering och lösenordsåterställning (kräver e-posttjänst) samt dataexport av egna frågor och svar. Resultat kan redan skrivas ut eller sparas som PDF via webbläsaren. Listan visar de 50 senaste frågorna/frågeseten; äldre finns kvar via sina resultatadresser.
+Lämpliga nästa steg är e-postverifiering och lösenordsåterställning (kräver e-posttjänst) samt dataexport av egna frågor och svar. Resultat kan redan skrivas ut eller sparas som PDF via webbläsaren. Startsidan visar sparade frågor/frågeset och äldre körningar. Körningarna för en sparad post finns i dess historik.

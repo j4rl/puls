@@ -8,7 +8,8 @@ $root = dirname(__DIR__);
 $configPath = $root.'/config.php';
 try {
     $config = is_file($configPath) ? require $configPath : null;
-    if ($config !== null && (($config['db_name'] ?? '') !== 'puls'
+    $standardRoot = $config !== null && ($config['db_user'] ?? '') === 'root' && ($config['db_password'] ?? '') === '';
+    if ($config !== null && !$standardRoot && (($config['db_name'] ?? '') !== 'puls'
         || !in_array($config['db_host'] ?? '', ['localhost', '127.0.0.1'], true)
         || ($config['db_user'] ?? '') !== 'puls_app')) {
         throw new RuntimeException('En egen config.php finns. Behåll den och importera database.sql manuellt i den avsedda databasen.');
@@ -30,13 +31,13 @@ try {
         if ($result = $admin->store_result()) $result->free();
         if (!$admin->more_results()) break;
     } while ($admin->next_result());
-    if (!$existing) {
+    if (!$existing && !$standardRoot) {
         $escaped = $admin->real_escape_string($password);
         $admin->query("CREATE USER 'puls_app'@'localhost' IDENTIFIED BY '$escaped'");
     }
-    $admin->query("GRANT SELECT, INSERT, UPDATE, DELETE ON puls.* TO 'puls_app'@'localhost'");
+    if (!$standardRoot) $admin->query("GRANT SELECT, INSERT, UPDATE, DELETE ON puls.* TO 'puls_app'@'localhost'");
     // Kontrollera anslutningen innan konfigurationen sparas.
-    $app = new mysqli('127.0.0.1', 'puls_app', $password, 'puls', $port);
+    $app = new mysqli('127.0.0.1', $standardRoot ? 'root' : 'puls_app', $password, 'puls', $port);
     $app->set_charset('utf8mb4');
     if ($config === null) {
         $config = require $root.'/config.example.php';
@@ -47,7 +48,7 @@ try {
         if (fwrite($handle, $contents) !== strlen($contents)) throw new RuntimeException('Kunde inte skriva hela config.php.');
         fclose($handle);
     }
-    echo "Puls är installerat. Databas: puls. Databasanvändare: puls_app.\n";
+    echo "Puls är installerat. Databas: puls. Databasanvändare: ".($standardRoot?'root':'puls_app').".\n";
     echo "Öppna http://localhost/puls/ när Apache är igång i XAMPP.\n";
     echo "Befintliga databastabeller har behållits; appen använder nu tabeller med prefixet puls_.\n";
 } catch (Throwable $e) {

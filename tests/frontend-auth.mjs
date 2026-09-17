@@ -12,7 +12,7 @@ const question={code:'123456',title:'Vill du vara med?',kind:'yesno',options:['J
 
 async function session(viewport={width:1440,height:1000}){
  const context=await browser.newContext({viewport}),page=await context.newPage();
- const state={user:null,failLogin:false,answered:false,published:null,requests:[],errors:[]};
+ const state={user:null,failLogin:false,answered:false,saved:null,published:null,requests:[],errors:[]};
  page.on('pageerror',error=>state.errors.push(error.message));
  await page.route('https://ld.j4rl.se/**',route=>route.abort());
  await page.route('**/api.php?*',async route=>{
@@ -23,6 +23,22 @@ async function session(viewport={width:1440,height:1000}){
   if(action==='list'){
    assert.ok(state.user,'Guest landing must never fetch the creator question list.');
    return route.fulfill(json({questions:[]}));
+  }
+  if(action==='saved-list'){
+   assert.ok(state.user,'Guest landing must never fetch saved questions.');
+   return route.fulfill(json({items:state.saved?[{id:1,type:state.saved.type,title:state.saved.payload.title,questionCount:1,runCount:state.published?1:0}]:[]}));
+  }
+  if(action==='save'){
+   assert.ok(state.user,'Saving requires an authenticated account.');
+   state.saved=structuredClone(data);
+   return route.fulfill(json({id:1},201));
+  }
+  if(action==='saved-get')return route.fulfill(json({id:1,...state.saved,runs:[]}));
+  if(action==='activate'){
+   assert.ok(state.user,'Activation requires an authenticated account.');
+   assert.equal(request.method(),'POST');
+   state.published={...state.saved.payload,code:'654321',open:true};
+   return route.fulfill(json({code:state.published.code},201));
   }
   if(action==='login'&&state.failLogin){state.failLogin=false;return route.fulfill(json({error:'Fel e-postadress eller lösenord.'},401));}
   if(action==='login'||action==='register'){
@@ -60,7 +76,7 @@ async function assertCreator(page){
  await page.locator('#question-title').fill('En inloggad användares fråga');
  await page.locator('[data-editor-save]').click();
  await page.locator('.preview-open').click();
- assert.equal(await page.locator('#preview-title').textContent(),'Så kan svaren se ut');
+ assert.equal(await page.locator('#preview-title').textContent(),'En inloggad användares fråga');
  assert.equal(await page.locator('#preview-chart').isVisible(),true);
 }
 
@@ -100,7 +116,7 @@ async function mobileRegistration(){
  try{
   await page.goto(base);
   await assertGuest(page);
-  await page.locator('#start-create').click();
+    await page.locator('#login').click();
   await page.locator('#account-dialog').waitFor();
   await page.locator('[data-account-mode=register]').click();
   await page.locator('#account-form [name=name]').fill(user.name);
@@ -113,9 +129,15 @@ async function mobileRegistration(){
   assert.equal(registration?.data.email,user.email);
   assert.equal(state.requests.filter(r=>r.action==='list').length,1);
   await page.locator('#publish').click();
+  await page.waitForURL(/\?edit=1/);
+  await page.locator('#activate-saved').waitFor();
+  assert.equal(state.published,null,'Saving must not activate a question.');
+  await page.locator('#activate-saved').click();
+  await page.getByRole('button',{name:'Visa Live view',exact:true}).click();
   await page.locator('#stage').waitFor();
   assert.equal(await page.locator('#stage h1').textContent(),'En inloggad användares fråga');
-  assert.equal(state.requests.filter(r=>r.action==='create').length,1);
+  assert.equal(state.requests.filter(r=>r.action==='save').length,1);
+  assert.equal(state.requests.filter(r=>r.action==='activate').length,1);
   assert.equal(new URL(page.url()).searchParams.get('live'),'654321');
   assert.deepEqual(state.errors,[]);
  }finally{await context.close();}
@@ -131,8 +153,7 @@ async function creatorLinks(){
    await assertGuest(page);
   }
   await page.goto(base+'om.html');
-  await page.getByRole('link',{name:'Skapa en fråga'}).click();
-  await page.locator('#account-dialog').waitFor();
+  await page.getByRole('link',{name:'Till startsidan'}).click();
   await assertGuest(page);
   assert.equal(state.requests.filter(r=>r.action==='list').length,0);
   state.user=user;
@@ -165,5 +186,5 @@ try{
  await mobileRegistration();
  await creatorLinks();
  await anonymousParticipant();
- console.log('PASS: guest landing, login recovery/logout, mobile registration/publishing, creator deep links, and anonymous participation.');
+ console.log('PASS: guest landing, login recovery/logout, mobile registration/save/activation, creator deep links, and anonymous participation.');
 }finally{await browser.close();}

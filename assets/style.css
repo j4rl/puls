@@ -2586,6 +2586,66 @@ body:has(#set-backdrop)>#app {
     margin-bottom: 24px
 }
 
+.saved-detail-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    max-width: 410px;
+    align-items: flex-start
+}
+
+.saved-detail-actions p {
+    flex-basis: 100%
+}
+
+.run-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-shrink: 0
+}
+
+.legacy-heading {
+    margin: 26px 0 12px
+}
+
+.question-edit {
+    max-width: 100%;
+    white-space: normal;
+    overflow-wrap: anywhere;
+    text-align: left;
+    margin-bottom: 18px
+}
+
+.saved-history .questionrow small,
+.saved-row small {
+    display: block;
+    line-height: 1.6;
+    margin-top: 4px
+}
+
+#saved-history-status:not(:empty),
+#save-error:not(:empty) {
+    margin-top: 14px
+}
+
+@media (max-width: 700px) {
+    .saved-detail-actions {
+        max-width: 100%
+    }
+
+    .run-actions {
+        justify-content: flex-start;
+        width: 100%
+    }
+
+    .run-actions .btn {
+        flex: 1;
+        white-space: normal
+    }
+}
+
 .appearance-open {
     margin-top: 18px
 }
