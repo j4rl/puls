@@ -2,13 +2,16 @@ import {escapeHTML as e,renderChart,number} from './charts.js';
 import {initResultPrinting} from './results-print.js';
 import {applySetDesign,editSetDesign} from './set-design.js';
 
-const views={bars:'Staplar',pie:'Cirkeldiagram',cloud:'Ordmoln',cards:'Textrutor',thermo:'Termometer'};
-const allowed={choice:['bars','pie'],yesno:['pie','bars'],number:['thermo','bars'],check:['bars'],sentence:['cards'],word:['cloud','cards']};
+const views={bars:'Staplar',pie:'Cirkeldiagram',cloud:'Ordmoln',cards:'Textrutor',thermo:'Termometer',matrix:'Matris'};
+const allowed={choice:['bars','pie'],yesno:['pie','bars'],number:['thermo','bars'],scale:['bars','thermo'],check:['bars'],ranking:['bars'],matrix:['matrix'],sentence:['cards'],word:['cloud','cards']};
 const showError=(target,message)=>{if(target)target.innerHTML=message?`<div class="error" role="alert">${e(message)}</div>`:'';};
 
 function answerInputs(q){
  if(['choice','yesno','check'].includes(q.kind))return `<fieldset><legend class="sr-only">Ditt svar</legend>${q.options.map((option,i)=>`<label class="answerchoice"><input type="${q.kind==='check'?'checkbox':'radio'}" name="answer" value="${i}"${q.kind==='check'?'':' required'}><span>${e(option)}</span></label>`).join('')}</fieldset>`;
+ if(q.kind==='scale')return `<fieldset><legend>Välj ett steg</legend>${Array.from({length:q.max-q.min+1},(_,i)=>q.min+i).map(value=>`<label class="answerchoice"><input type="radio" name="answer" value="${value}" required><span>${number(value)}</span></label>`).join('')}</fieldset>`;
  if(q.kind==='number')return `<label class="field"><span>Ditt värde (${number(q.min)}–${number(q.max)})</span><input type="number" name="answer" min="${e(q.min)}" max="${e(q.max)}" step="any" inputmode="decimal" required placeholder="Ange ett tal"></label>`;
+ if(q.kind==='ranking')return `<fieldset><legend>Ordna från viktigast till minst viktigt</legend><ol class="ranking-input">${q.options.map((option,i)=>`<li data-rank-value="${e(option)}"><span>${e(option)}</span><button type="button" class="rank-up" aria-label="Flytta ${e(option)} uppåt"${i?'':' disabled'}>↑</button><button type="button" class="rank-down" aria-label="Flytta ${e(option)} nedåt"${i===q.options.length-1?' disabled':''}>↓</button></li>`).join('')}</ol></fieldset>`;
+ if(q.kind==='matrix')return `<fieldset class="matrix-input"><legend>Välj ett svar per påstående</legend>${q.options.rows.map((row,i)=>`<div class="matrix-row"><strong>${e(row)}</strong><div>${q.options.columns.map((column,j)=>`<label><input type="radio" name="matrix-${i}" value="${j}" required><span>${e(column)}</span></label>`).join('')}</div></div>`).join('')}</fieldset>`;
  return `<label class="field"><span>${q.kind==='word'?'Ditt ord':'Din mening'}</span>${q.kind==='word'?'<input name="answer" maxlength="40" required placeholder="Skriv ett ord" autocomplete="off">':'<textarea name="answer" rows="4" maxlength="500" required placeholder="Vad tänker du?"></textarea>'}</label>`;
 }
 
@@ -23,6 +26,7 @@ export function joinQuestionSet({app,api,code,initial,isStopped}){
    const progress=q?`Fråga ${q.position+1} av ${set.total}`:`${set.total} frågor`;
    const content=state.complete?'<div class="statusicon" aria-hidden="true">✓</div><h1 tabindex="-1">Tack för dina svar!</h1><p>Frågesetet är klart. Dina inskickade svar är sparade.</p><a class="btn" href="?join">Svara på en annan fråga</a>':state.waiting?'<div class="statusicon" aria-hidden="true">✓</div><h1 tabindex="-1">Ditt svar är sparat</h1><p id="set-waiting" role="status">Vänta här. Nästa fråga visas när skaparen öppnar den.</p>':`<h1 tabindex="-1">${e(q.title)}</h1><form id="answer-form">${answerInputs(q)}<div id="answer-error"></div><button id="send-answer" class="btn primary big">Skicka svar →</button></form>`;
    app.innerHTML=`<section class="panel joincard"><span class="eyebrow">${e(set.title)}</span><p class="small muted">${progress} · Kod ${e(code)}</p>${content}<p id="paused-note" class="error" role="status" hidden>Frågesetet är pausat. Vi väntar på att det öppnas.</p><p id="set-connection" class="small muted" role="status"></p></section>`;
+  app.querySelectorAll('.rank-up,.rank-down').forEach(button=>button.addEventListener('click',()=>{const item=button.closest('li'),other=button.classList.contains('rank-up')?item.previousElementSibling:item.nextElementSibling;if(!other)return;item.parentElement.insertBefore(button.classList.contains('rank-up')?item:other,button.classList.contains('rank-up')?other:item);item.parentElement.querySelectorAll('li').forEach((li,i)=>{li.querySelector('.rank-up').disabled=!i;li.querySelector('.rank-down').disabled=i===item.parentElement.children.length-1;});}));
    app.querySelector('#answer-form')?.addEventListener('submit',submit);
    if(hadScreen)app.querySelector('h1').focus();
   }
@@ -46,12 +50,14 @@ export function joinQuestionSet({app,api,code,initial,isStopped}){
   event.preventDefault();const form=event.currentTarget,q=state.question;
   if(inactive()||sending||!state.set.open||!form.reportValidity())return;
   let value;
-  if(q.kind==='check')value=[...form.querySelectorAll('input:checked')].map(input=>q.options[Number(input.value)]);
+    if(q.kind==='check')value=[...form.querySelectorAll('input:checked')].map(input=>q.options[Number(input.value)]);
   else if(['choice','yesno'].includes(q.kind))value=q.options[Number(new FormData(form).get('answer'))];
-  else if(q.kind==='number')value=form.elements.answer.valueAsNumber;
+    else if(['number','scale'].includes(q.kind))value=form.elements.answer.valueAsNumber;
+    else if(q.kind==='ranking')value=[...form.querySelectorAll('[data-rank-value]')].map(item=>item.dataset.rankValue);
+    else if(q.kind==='matrix')value=Object.fromEntries(q.options.rows.map((row,i)=>[row,q.options.columns[Number(form.elements[`matrix-${i}`].value)]]));
   else value=form.elements.answer.value.trim();
   if(Array.isArray(value)&&!value.length){showError(app.querySelector('#answer-error'),'Välj minst ett alternativ.');return;}
-  if(q.kind==='number'&&!Number.isFinite(value)){showError(app.querySelector('#answer-error'),'Ange ett tal inom frågans intervall.');return;}
+    if(['number','scale'].includes(q.kind)&&!Number.isFinite(value)){showError(app.querySelector('#answer-error'),'Ange ett tal inom frågans intervall.');return;}
   revision++;sending=true;const button=app.querySelector('#send-answer');button.disabled=true;button.textContent='Skickar…';
   showError(app.querySelector('#answer-error'),'');
   try{

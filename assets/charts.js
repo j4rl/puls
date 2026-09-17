@@ -2,6 +2,7 @@ export const palette=['#dfff86','#a49bff','#69d9df','#ffb88f','#f092c9','#b8cef7
 export const escapeHTML=(s)=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export const number=(n)=>new Intl.NumberFormat('sv-SE',{maximumSignificantDigits:17}).format(n);
 export function grouped(question,answers){
+ if(question.kind==='matrix')return [];
  if(question.kind==='number'){
   const min=Number(question.min),max=Number(question.max);
   if(!Number.isFinite(min)||!Number.isFinite(max)||max<=min)return [];
@@ -18,6 +19,8 @@ export function grouped(question,answers){
    bins[index===-1?bins.length-1:index-1].count++;
   });return bins;
  }
+ if(question.kind==='scale')return Array.from({length:question.max-question.min+1},(_,i)=>question.min+i).map(value=>({label:number(value),count:answers.filter(answer=>answer===value).length}));
+ if(question.kind==='ranking')return question.options.map(label=>{const positions=answers.map(order=>Array.isArray(order)?order.indexOf(label)+1:0).filter(position=>position>0);return {label,count:positions.length?positions.reduce((sum,position)=>sum+position,0)/positions.length:0};});
  if(['choice','yesno','check'].includes(question.kind))return question.options.map(label=>({label,count:answers.filter(v=>Array.isArray(v)?v.includes(label):v===label).length}));
  const counts=new Map();answers.forEach(v=>{const key=String(v).trim().normalize('NFC').toLocaleLowerCase('sv');counts.set(key,(counts.get(key)||0)+1)});
  return [...counts].map(([label,count])=>({label,count})).sort((a,b)=>b.count-a.count||a.label.localeCompare(b.label,'sv'));
@@ -27,6 +30,16 @@ export function renderChart(q,answers,{forPrint=false}={}){
  const e=escapeHTML,data=grouped(q,answers),max=Math.max(1,...data.map(d=>d.count));
  const percent=v=>Math.round(v/answers.length*100);
  const accessible=`${forPrint?'<section class="datadetails"><h2>Siffrorna bakom diagrammet</h2>':'<details class="datadetails"><summary>Visa siffrorna</summary>'}<ul>${data.map(d=>`<li>${e(d.label)}: ${d.count}${['choice','yesno','check','number'].includes(q.kind)?` (${percent(d.count)} %)`:''}</li>`).join('')}</ul>${q.kind==='number'?'<small>Intervall inkluderar undre gränsen. Det sista inkluderar även max.</small>':''}${forPrint?'</section>':'</details>'}`;
+ if(q.kind==='matrix'){
+  const rows=q.options.rows,columns=q.options.columns;
+  const cells=rows.map(row=>columns.map(column=>answers.filter(answer=>answer&&answer[row]===column).length));
+  const highest=Math.max(1,...cells.flat());
+  return `<div class="matrix-chart" role="table"><div class="matrix-chart-row matrix-chart-head"><span></span>${columns.map(column=>`<strong>${e(column)}</strong>`).join('')}</div>${rows.map((row,i)=>`<div class="matrix-chart-row"><strong>${e(row)}</strong>${columns.map((column,j)=>`<span title="${e(column)}: ${cells[i][j]} svar" style="background:color-mix(in srgb,var(--chart-${(j%6)+1}) ${Math.round(cells[i][j]/highest*80)+10}%,transparent)">${cells[i][j]}</span>`).join('')}</div>`).join('')}</div>${forPrint?`<section class="datadetails"><h2>Siffrorna bakom matrisen</h2><p>${answers.length} svar</p></section>`:''}`;
+ }
+ if(q.kind==='ranking'){
+  const maxRank=Math.max(1,q.options.length);
+  return `<div class="viz">${data.map((item,i)=>{const percentValue=Math.round((maxRank-item.count+1)/maxRank*100);return `<div class="baritem"><div class="barlabel"><span>${e(item.label)}</span><b>${number(item.count||0)} plats</b></div><div class="bartrack" aria-hidden="true"><div class="barfill" style="background:${palette[i%palette.length]};width:${percentValue}%"></div></div></div>`}).join('')}</div><p class="small">Genomsnittlig placering. Lägre placering är bättre.</p>${forPrint?accessible:''}`;
+ }
  if(q.view==='cards')return `<div class="viz cards">${answers.slice(forPrint?0:-200).reverse().map(v=>`<div class="quote">${e(v)}</div>`).join('')}</div>${!forPrint&&answers.length>200?'<p class="small">De 200 senaste svaren visas.</p>':''}`;
  if(q.view==='cloud')return `<div class="viz cloud">${data.slice(0,80).map((d,i)=>`<span style="font-size:${Math.round(20+40*d.count/max)}px;color:${palette[i%palette.length]}" title="${e(d.label)}: ${d.count} svar">${e(d.label)}</span>`).join('')}</div>${data.length>80?'<p class="small">De 80 vanligaste orden visas.</p>':''}${accessible}`;
  if(q.view==='thermo'){
@@ -38,5 +51,5 @@ export function renderChart(q,answers,{forPrint=false}={}){
   let cumulative=0;const gradient=data.filter(d=>d.count).map(d=>{const i=data.indexOf(d),start=cumulative;cumulative+=d.count/answers.length*100;return `${palette[i%palette.length]} ${start}% ${cumulative}%`}).join(',');
   return `<div class="viz chartcircle"><div class="donut" style="background:conic-gradient(${gradient})" aria-hidden="true"><b>${answers.length}</b></div><div class="legend">${data.map((d,i)=>`<div><i style="background:${palette[i%palette.length]}"></i>${e(d.label)} <b>${percent(d.count)} %</b></div>`).join('')}</div></div>${accessible}`;
  }
- return `<div class="viz">${data.map((d,i)=>`<div class="baritem"><div class="barlabel"><span>${e(d.label)}</span><b>${d.count} <span class="barpercent">(${percent(d.count)} %)</span></b></div><div class="bartrack" aria-hidden="true"><div class="barfill" style="background:${palette[i%palette.length]};width:${percent(d.count)}%"></div></div></div>`).join('')}</div>${q.kind==='check'?'<p class="small">Andel deltagare per alternativ. Summan kan överstiga 100 %.</p>':''}${q.kind==='number'?'<p class="small">Intervall inkluderar undre gränsen. Det sista inkluderar även max.</p>':''}`;
+ return `<div class="viz">${data.map((d,i)=>`<div class="baritem"><div class="barlabel"><span>${e(d.label)}</span><b>${number(d.count)} <span class="barpercent">(${percent(d.count)} %)</span></b></div><div class="bartrack" aria-hidden="true"><div class="barfill" style="background:${palette[i%palette.length]};width:${percent(d.count)}%"></div></div></div>`).join('')}</div>${q.kind==='check'?'<p class="small">Andel deltagare per alternativ. Summan kan överstiga 100 %.</p>':''}${['number','scale'].includes(q.kind)?'<p class="small">Fördelning av svar inom frågans intervall.</p>':''}`;
 }

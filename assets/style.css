@@ -733,6 +733,85 @@ small,
     background: #f1efff
 }
 
+.ranking-input {
+    padding: 0;
+    list-style: none
+}
+
+.ranking-input li {
+    display: grid;
+    grid-template-columns: 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    margin: 8px 0
+}
+
+.ranking-input button {
+    min-width: 36px;
+    min-height: 36px
+}
+
+.matrix-input {
+    display: grid;
+    gap: 14px
+}
+
+.matrix-row {
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 12px
+}
+
+.matrix-row>div {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    margin-top: 8px
+}
+
+.matrix-row label {
+    display: grid;
+    gap: 4px;
+    justify-items: center;
+    text-align: center;
+    font-size: 12px
+}
+
+.matrix-chart {
+    display: grid;
+    gap: 5px;
+    margin: 26px 0;
+    overflow-x: auto
+}
+
+.matrix-chart-row {
+    display: grid;
+    grid-template-columns: minmax(130px, 1.4fr) repeat(3, minmax(90px, 1fr));
+    gap: 5px;
+    min-width: 430px
+}
+
+.matrix-chart-row>* {
+    min-height: 46px;
+    display: grid;
+    place-items: center;
+    padding: 8px;
+    text-align: center;
+    border-radius: 5px
+}
+
+.matrix-chart-row>strong:first-child {
+    justify-items: start;
+    text-align: left
+}
+
+.matrix-chart-row>span {
+    border: 1px solid var(--border);
+    font-weight: 700
+}
+
 .statusicon {
     width: 64px;
     height: 64px;

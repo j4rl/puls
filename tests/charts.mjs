@@ -9,6 +9,8 @@ assert.equal(new Set(decimals.map(bin=>bin.label)).size,10,'Small decimal ranges
 assert.equal(decimals[1].count,1,'An exact boundary belongs to the interval starting at that value.');
 assert.equal(decimals[9].count,1,'The maximum belongs to the final interval.');
 assert.equal(grouped({...q,min:0.1,max:1.1},[0.3])[2].count,1,'Decimal arithmetic must agree with displayed interval boundaries.');
+assert.deepEqual(grouped({kind:'scale',min:1,max:3},[1,2,2,3]).map(bin=>bin.count),[1,2,1]);
+assert.equal(grouped({kind:'ranking',options:['A','B']},[['A','B'],['B','A']])[0].count,1.5,'Ranking reports average placement.');
 assert.equal(number(0.0001),'0,0001');
 const tiny=grouped({...q,min:1,max:1+Number.EPSILON},[1,1+Number.EPSILON]);
 assert.equal(tiny.length,1,'Do not draw zero-width intervals for adjacent floating-point values.');
@@ -22,5 +24,6 @@ assert.ok(escapeHTML('<img src=x onerror=alert(1)>').startsWith('&lt;img'));
 assert.ok(!renderChart({kind:'sentence',view:'cards'},['<script>alert(1)</script>']).includes('<script>'));
 assert.ok(renderChart({kind:'number',min:-5,max:5,view:'thermo'},[-5,0,5]).includes('Medelvärde'));
 assert.ok(renderChart({kind:'choice',options:['A','B'],view:'pie'},['A','B']).includes('conic-gradient'));
+assert.ok(renderChart({kind:'matrix',options:{rows:['R1'],columns:['Nej','Ja']},view:'matrix'},[{'R1':'Ja'}]).includes('Ja'));
 assert.ok(renderChart(q,[]).includes('Inga svar ännu'));
 console.log('PASS: histogram boundaries, multi-select counts, Unicode grouping, HTML escaping, thermometer, pie and empty results.');

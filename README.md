@@ -30,9 +30,9 @@ För lokal databasadministration använder skriptet `root` utan lösenord enligt
 
 ## Funktioner och konton
 
-- Flerval, ja/nej, kryssrutor, tal med valfritt intervall, meningar och enstaka ord.
+- Flerval, ja/nej, kryssrutor, skala, rangordning, matris, tal med valfritt intervall, meningar och enstaka ord.
 - Frågeset med 1–20 frågor, valfri blandning av frågetyper och en gemensam deltagarkod.
-- Staplar, cirkeldiagram, termometer, ordmoln och textsvar.
+- Staplar, cirkeldiagram, termometer, ordmoln, rangordningsresultat, matris och textsvar.
 - **Skriv ut / spara PDF** i resultatvyn öppnar webbläsarens utskriftsdialog. Välj skrivare eller **Spara som PDF**. Utskriften innehåller frågan, antal svar, tidpunkt och resultatet, även när det är dolt på skärmen. Alla textsvar och alla ords antal tas med.
 - QR-kod, deltagarlänk, kopiering, helskärm, paus/återupptagning och dolda resultat.
 - Resultat hämtas varannan sekund. Deltagarvyn följer pausning automatiskt.

@@ -78,7 +78,7 @@ function check(bool $ok, string $message): void {
 }
 function createQuestion(array &$client, string $kind, array $extra = []): string {
     global $prefix, $created;
-    $views = ['choice'=>'bars','yesno'=>'pie','check'=>'bars','word'=>'cloud','sentence'=>'cards','number'=>'thermo'];
+    $views = ['choice'=>'bars','yesno'=>'pie','check'=>'bars','word'=>'cloud','sentence'=>'cards','number'=>'thermo','scale'=>'bars','ranking'=>'bars','matrix'=>'matrix'];
     $data = array_replace(['title'=>$prefix.' '.$kind, 'kind'=>$kind, 'options'=>['Öva','Prata'], 'view'=>$views[$kind], 'min'=>-2.5, 'max'=>2.5], $extra);
     $code = request($client, 'create', $data, [], 201)['code'];
     $created[] = $code;
@@ -138,9 +138,12 @@ try {
     request($oldGuest, 'list', null, [], 401);
     check(true, 'Replayed pre-registration guest cookie cannot access claimed questions');
     check(array_column(request($owner, 'list')['questions'], 'code') === [$legacyCode], 'Registration claims this guest’s legacy questions');
-    $answers = ['choice'=>'Öva','yesno'=>'Ja','check'=>['Öva','Prata'],'word'=>'nyfiken','sentence'=>'<script>alert(1)</script>','number'=>0];
+    $answers = ['choice'=>'Öva','yesno'=>'Ja','check'=>['Öva','Prata'],'word'=>'nyfiken','sentence'=>'<script>alert(1)</script>','number'=>0,'scale'=>3,'ranking'=>['Prata','Öva'],'matrix'=>['R1'=>'Ja','R2'=>'Nej']];
+    $numericCode = '';
     foreach ($answers as $kind=>$value) {
-        $code = createQuestion($owner, $kind);
+        $extra = $kind==='matrix' ? ['options'=>['rows'=>['R1','R2'],'columns'=>['Nej','Ja']]] : ($kind==='ranking' ? ['options'=>['Öva','Prata']] : ($kind==='scale' ? ['min'=>1,'max'=>5] : []));
+        $code = createQuestion($owner, $kind, $extra);
+        if ($kind === 'number') $numericCode = $code;
         $q = request($voter, 'question', null, ['code'=>$code]);
         check(!$q['answered'] && $q['question']['kind'] === $kind, "$kind opens for participants");
         request($other, 'results', null, ['code'=>$code], 403);
@@ -151,7 +154,7 @@ try {
         check(count($result['answers']) === 1 && $result['answers'][0]['value'] === $value, "$kind result preserved");
         check(request($owner, 'results', null, ['code'=>$code, 'since'=>$result['answers'][0]['id']])['answers'] === [], "$kind incremental polling does not repeat answers");
     }
-    $code = end($created);
+    $code = $numericCode;
     request($owner, 'update', ['open'=>false], ['code'=>$code]);
     request($other, 'answer', ['value'=>0], ['code'=>$code], 409);
     request($owner, 'update', ['open'=>true], ['code'=>$code]);
