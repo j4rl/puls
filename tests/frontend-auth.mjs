@@ -55,9 +55,13 @@ async function assertCreator(page){
  await page.locator('#create-form').waitFor();
  await page.locator('#question-list .emptylist').waitFor();
  assert.equal(await page.locator('.landing-hero,.landing-steps,#account-dialog').count(),0);
- assert.equal(await page.locator('#preview-chart').isVisible(),true);
+ await page.locator('.kind').first().click();
+ await page.locator('#question-editor-dialog').waitFor({state:'visible'});
  await page.locator('#question-title').fill('En inloggad användares fråga');
- assert.equal(await page.locator('#preview-title').textContent(),'En inloggad användares fråga');
+ await page.locator('[data-editor-save]').click();
+ await page.locator('.preview-open').click();
+ assert.equal(await page.locator('#preview-title').textContent(),'Så kan svaren se ut');
+ assert.equal(await page.locator('#preview-chart').isVisible(),true);
 }
 
 async function fillCredentials(page){

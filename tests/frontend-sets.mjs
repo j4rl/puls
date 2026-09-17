@@ -40,6 +40,7 @@ async function createSet(page,progression){
  await page.goto(base);await page.locator('#use-set').check();
  await page.locator('#set-title').fill(progression==='host'?'Gemensam avstämning':'Dagens reflektion');
  await page.locator('#set-progression').selectOption(progression);
+ await page.locator('.kind').first().click();
  await page.locator('#question-title').fill('Hur känns det idag?');
  await page.locator('[name=kind][value=number]').check();
  await page.locator('#set-add').click();

@@ -1510,7 +1510,9 @@ ld-theme-toggle:not(:defined) {
 
 .appearance-dialog,
 .account-dialog,
-.confirm-dialog {
+.confirm-dialog,
+.question-editor-dialog,
+.question-preview-dialog {
     background: var(--surface);
     color: var(--text);
     border: 1px solid var(--border);
@@ -1523,9 +1525,51 @@ ld-theme-toggle:not(:defined) {
     box-shadow: 0 22px 80px #0005
 }
 
+.question-editor-dialog {
+    max-width: 720px
+}
+
+.question-preview-dialog {
+    max-width: 760px;
+    padding: 22px
+}
+
+.question-preview-dialog .previewbox {
+    min-height: 420px
+}
+
+.question-editor-dialog .stephead {
+    margin-top: 24px
+}
+
+.question-editor-dialog .divider {
+    margin: 20px 0
+}
+
+.preview-open {
+    width: 100%;
+    min-height: 150px;
+    border: 1px dashed var(--primary);
+    background: var(--surface-muted);
+    color: var(--primary);
+    font-size: 17px
+}
+
+.appearance-section {
+    border-top: 1px solid var(--border);
+    margin-top: 26px;
+    padding-top: 24px
+}
+
+.appearance-section .stephead {
+    align-items: flex-start
+}
+
 .appearance-dialog::backdrop,
 .account-dialog::backdrop,
-.confirm-dialog::backdrop {
+.confirm-dialog::backdrop,
+.question-editor-dialog::backdrop,
+.question-preview-dialog::backdrop {
     background: #10102099
 }
 
