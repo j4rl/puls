@@ -11,6 +11,7 @@
         content="default-src 'self'; script-src 'self' https://ld.j4rl.se; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://jolt.j4rl.se; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'">
     <title>Om Puls</title>
     <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+    <script src="assets/about.js" type="module"></script>
     <link rel="stylesheet" href="assets/style.css">
 </head>
 
@@ -18,8 +19,17 @@
     <header class="topbar"><a class="brand" href="./" aria-label="Puls, startsida"><img src="assets/favicon.svg"
                 alt="">puls<span>BETA</span></a><span class="topnote">Ge alla i rummet en röst.</span>
         <nav class="top-actions" aria-label="Huvudnavigation"><a class="nav-link" href="om.html" aria-current="page">Om
-                Puls</a><a class="btn primary" href="./#create-start">Skapa en fråga <span
-                    aria-hidden="true">↗</span></a></nav>
+                Puls</a>
+            <div class="appearance-controls"><ld-theme-toggle id="theme-mode" storage-key="ld-theme"
+                    hidden></ld-theme-toggle><label id="theme-fallback" class="theme-fallback"><span
+                        class="sr-only">Ljust eller mörkt utseende</span><select id="theme-mode-fallback"
+                        aria-label="Ljust eller mörkt utseende">
+                        <option value="system">Auto</option>
+                        <option value="light">Ljust</option>
+                        <option value="dark">Mörkt</option>
+                    </select></label><button class="btn" id="theme-settings" type="button" hidden>Mitt tema</button>
+            </div><a class="btn primary" href="?join">Svara på fråga <span aria-hidden="true">↗</span></a>
+        </nav>
     </header>
     <main class="about-shell">
         <section class="about-hero"><span class="eyebrow">OM PULS</span>
@@ -52,11 +62,16 @@
         <section class="support-section" aria-labelledby="support-title">
             <div class="support-copy"><span class="eyebrow">OM MIG</span>
                 <h2 id="support-title">Byggt på fritiden</h2>
-                <p>Puls är byggt med nyfikenhet och många kvällar framför skärmen. Det är gratis av en anledning: bra verktyg ska få vara enkla att använda.</p>
-                <p>Tycker du om Puls får du gärna säga det högt, dela det vidare eller visa uppskattning med en frivillig donation.</p>
+                <p>Puls är byggt med nyfikenhet och många kvällar framför skärmen. Det är gratis av en anledning: bra
+                    verktyg ska få vara enkla att använda.</p>
+                <p>Tycker du om Puls får du gärna säga det högt, dela det vidare eller visa uppskattning med en
+                    frivillig donation.</p>
                 <p class="muted small">Helt frivilligt. Helt upp till dig.</p>
             </div>
-            <figure class="paypal-card"><img src="https://jolt.j4rl.se/assets/paypal_qr.png" alt="PayPal QR-kod för donationer"><figcaption>PayPal</figcaption></figure>
+            <figure class="paypal-card"><img src="https://jolt.j4rl.se/assets/paypal_qr.png"
+                    alt="PayPal QR-kod för donationer">
+                <figcaption>PayPal</figcaption>
+            </figure>
         </section>
         <footer class="about-footer">
             <p>Puls är en liten svensk webbapp för stora samtal.</p><a class="btn" href="./">Till startsidan <span

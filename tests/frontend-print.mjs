@@ -51,6 +51,7 @@ async function completeTextResults(){
  const {context,page,state}=await session(q,values);
  try{
   await page.goto(`${base}?live=${q.code}`);
+    await page.getByRole('button',{name:'Visa Live view',exact:true}).click();
   const button=page.getByRole('button',{name:'Skriv ut / spara PDF',exact:true});
   await button.waitFor();
   assert.equal(await button.getAttribute('id'),'print-results-button');
