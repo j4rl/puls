@@ -8,7 +8,7 @@ $code = $_GET['code'] ?? '';
 if (!is_string($action) || !is_string($code)) respond(['error'=>'Ogiltig åtgärd eller frågekod.'],400);
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 if (!in_array($method,['GET','POST'],true)) respond(['error'=>'Metoden stöds inte.'],405);
-if (in_array($action,['bootstrap','list','question','results','set-image'],true) && $method !== 'GET') respond(['error'=>'Använd GET.'],405);
+if (in_array($action,['bootstrap','list','question','results','set-image','question-image'],true) && $method !== 'GET') respond(['error'=>'Använd GET.'],405);
 try {
     if ($action === 'create-set') create_question_set();
     if (in_array($action,['question','results','update','delete','answer','set-advance','set-design','set-image'],true)) {
@@ -49,6 +49,7 @@ try {
     if ($action === 'create') {
         $p = require_write();
         $user = require_user('Logga in för att skapa en fråga.');
+        $design = isset($p['design']) ? validate_set_design($p['design']) : null;
         $p = validate_question($p);
         rate_limit('create-ip',request_ip(),max(1,(int)($config['max_questions_per_ip_per_hour']??120)),3600);
         $owner = $user['owner_hash'];
@@ -58,6 +59,7 @@ try {
             $newCode=(string)random_int(100000,999999);
             try {
                 query('INSERT INTO questions (code,owner_hash,title,kind,options_json,min_value,max_value,result_view) VALUES (?,?,?,?,?,?,?,?)','sssssdds',[$newCode,$owner,$p['title'],$p['kind'],json_encode($p['options'],JSON_UNESCAPED_UNICODE),$p['min'],$p['max'],$p['view']]);
+                if ($design!==null) save_question_design((int)database()->insert_id,$design);
                 respond(['code'=>$newCode],201);
             } catch(mysqli_sql_exception $e) { if ($e->getCode() !== 1062) throw $e; }
         }
@@ -66,7 +68,7 @@ try {
     if ($action === 'question') {
         $q=find_question($code);
         $row=query('SELECT id FROM answers WHERE question_id=? AND voter_hash=?','is',[(int)$q['id'],voter_hash()])->get_result()->fetch_assoc();
-        respond(['question'=>public_question($q),'answered'=>(bool)$row]);
+        respond(['question'=>array_merge(public_question($q),['design'=>public_question_design((int)$q['id'],$code)]),'answered'=>(bool)$row]);
     }
     if ($action === 'results') {
         $q=find_question($code);require_owner($q);
@@ -74,7 +76,14 @@ try {
         if ($since === false) respond(['error'=>'Ogiltigt svars-ID.'],400);
         $rows=query('SELECT id,value_json FROM answers WHERE question_id=? AND id>? ORDER BY id ASC LIMIT 5000','ii',[(int)$q['id'],$since])->get_result()->fetch_all(MYSQLI_ASSOC);
         $items=array_map(static function($r){return ['id'=>(int)$r['id'],'value'=>json_decode($r['value_json'],true)];},$rows);
-        respond(['question'=>public_question($q),'answers'=>$items]);
+        respond(['question'=>array_merge(public_question($q),['design'=>public_question_design((int)$q['id'],$code)]),'answers'=>$items]);
+    }
+    if ($action === 'question-design') {
+        $p=require_write();$q=find_question($code);require_owner($q);save_question_design((int)$q['id'],validate_set_design($p,true));
+        respond(['ok'=>true,'design'=>public_question_design((int)$q['id'],$code)]);
+    }
+    if ($action === 'question-image') {
+        $q=find_question($code);serve_question_image($code,(int)$q['id']);
     }
     if ($action === 'update') {
         $p=require_write();$q=find_question($code);require_owner($q);

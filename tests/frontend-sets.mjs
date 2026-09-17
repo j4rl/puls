@@ -55,6 +55,8 @@ async function createSet(page,progression){
  assert.equal(await page.locator('#question-title').inputValue(),'Hur känns det idag?');
  assert.equal(await page.locator('[name=kind][value=number]').isChecked(),true);
  if(progression==='automatic'){
+    await page.locator('.appearance-open').click();
+    await page.locator('#builder-design-dialog').waitFor({state:'visible'});
   await page.locator('.set-design-editor summary').click();
   await page.locator('[data-preset]').selectOption('Skog');
   const png=await page.evaluate(()=>{const canvas=document.createElement('canvas');canvas.width=240;canvas.height=80;const c=canvas.getContext('2d');c.fillStyle='#276847';c.fillRect(0,0,240,80);c.fillStyle='#ffffff';c.font='bold 25px Arial';c.fillText('PULS TEST',35,50);return canvas.toDataURL('image/png').split(',')[1];});
@@ -64,6 +66,7 @@ async function createSet(page,progression){
   }
   await page.screenshot({path:'test-results/set-builder.png',fullPage:true});
  }
+ if(progression==='automatic')await page.locator('#builder-design-dialog [data-design-close]').click();
  await page.locator('#publish').click();await page.waitForURL(/\?live=\d{6}$/);
  await page.locator('#set-result-question').waitFor();
  return new URL(page.url()).searchParams.get('live');

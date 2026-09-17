@@ -83,3 +83,18 @@ CREATE TABLE IF NOT EXISTS set_design_assets (
     PRIMARY KEY (set_id,slot),
     CONSTRAINT fk_set_design_asset FOREIGN KEY (set_id) REFERENCES question_sets(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS question_designs (
+    question_id BIGINT UNSIGNED NOT NULL,
+    design_json TEXT NOT NULL,
+    version CHAR(32) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    PRIMARY KEY (question_id),
+    CONSTRAINT fk_question_design FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+CREATE TABLE IF NOT EXISTS question_design_assets (
+    question_id BIGINT UNSIGNED NOT NULL,
+    slot VARCHAR(16) NOT NULL,
+    mime VARCHAR(32) NOT NULL,
+    content MEDIUMBLOB NOT NULL,
+    PRIMARY KEY (question_id,slot),
+    CONSTRAINT fk_question_design_asset FOREIGN KEY (question_id) REFERENCES questions(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -35,6 +35,7 @@ För lokal databasadministration använder skriptet `root` utan lösenord enligt
 - Staplar, cirkeldiagram, termometer, ordmoln, rangordningsresultat, matris och textsvar.
 - **Skriv ut / spara PDF** i resultatvyn öppnar webbläsarens utskriftsdialog. Välj skrivare eller **Spara som PDF**. Utskriften innehåller frågan, antal svar, tidpunkt och resultatet, även när det är dolt på skärmen. Alla textsvar och alla ords antal tas med.
 - QR-kod, deltagarlänk, kopiering, helskärm, paus/återupptagning och dolda resultat.
+- Utseende kan ställas in separat för en fråga eller ett frågeset. Färger, bakgrund, förgrundsbild och logotyp visas direkt i den inbyggda förhandsvisningen och följer med till deltagar- och Live-vyn.
 - Resultat hämtas varannan sekund. Deltagarvyn följer pausning automatiskt.
 - Upp till 5 000 svar per fråga och ett svar per webbläsare. Det är ett cookieskydd; nya webbläsare eller raderade cookies kan ge nya svar.
 - Frågeformuläret, förhandsvisningen och egna frågor visas först efter inloggning. Deltagare kan svara utan konto via en kod eller deltagarlänk.
@@ -56,7 +57,7 @@ I automatiskt läge går varje deltagare vidare i egen takt till sin första obe
 
 Skaparen kan välja vilken frågas resultat som visas utan att ändra deltagarnas fråga. Utskrift/PDF gäller den valda frågans resultat. Frågesetet visas som en post i listan; borttagning efter bekräftelse raderar alla frågor och svar i setet. Varje fråga räknas mot gränsen för nya frågor per timme och har sin egen svarsgräns.
 
-Vid uppgradering behöver **database.sql importeras igen** innan den nya koden används. Det lägger till `question_sets` och `set_questions` utan att ändra befintliga frågor eller svar. Lokalt görs det med `scripts/setup-local.php` enligt ovan. Webbappen behöver inga nya databasrättigheter.
+Vid uppgradering behöver **database.sql importeras igen** innan den nya koden används. Det lägger till `question_sets`, `set_questions`, `set_designs`, `set_design_assets`, `question_designs` och `question_design_assets` utan att ändra befintliga frågor eller svar. Lokalt görs det med `scripts/setup-local.php` enligt ovan. Webbappen behöver inga nya databasrättigheter.
 
 ### Eget utseende för varje set
 

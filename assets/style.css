@@ -2351,18 +2351,66 @@ body:has(#set-backdrop)>#app {
     margin-bottom: 24px
 }
 
+.appearance-open {
+    margin-top: 18px
+}
+
 .set-toggle {
     display: flex;
     align-items: center;
     gap: 10px;
     font-weight: 600;
-    cursor: pointer
+    cursor: pointer;
+    position: relative;
+    min-height: 28px;
+    user-select: none
 }
 
 .set-toggle input {
-    width: 18px;
-    height: 18px;
-    accent-color: var(--primary)
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    opacity: 0
+}
+
+.set-toggle::before {
+    content: '';
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    background: var(--surface);
+    box-shadow: inset 0 1px 2px #00000012;
+    transition: background .16s, border-color .16s, transform .16s
+}
+
+.set-toggle::after {
+    content: '';
+    position: absolute;
+    left: 6px;
+    top: 5px;
+    width: 8px;
+    height: 5px;
+    border-left: 2px solid var(--primary-contrast);
+    border-bottom: 2px solid var(--primary-contrast);
+    transform: rotate(-45deg) scale(0);
+    transition: transform .16s
+}
+
+.set-toggle:has(input:checked)::before {
+    border-color: var(--primary);
+    background: var(--primary);
+    transform: scale(1.04)
+}
+
+.set-toggle:has(input:checked)::after {
+    transform: rotate(-45deg) scale(1)
+}
+
+.set-toggle:has(input:focus-visible)::before {
+    outline: 3px solid color-mix(in srgb, var(--primary) 28%, transparent);
+    outline-offset: 2px
 }
 
 #set-settings {

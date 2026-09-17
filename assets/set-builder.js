@@ -6,7 +6,12 @@ export function initSetBuilder({form,draft,loadDraft,openEditor}){
  panel.innerHTML='<label class="set-toggle"><input type="checkbox" id="use-set"><span>Samla frågor i ett frågeset</span></label><div id="set-settings" hidden><label class="field"><span>Namn på frågesetet</span><input id="set-title" maxlength="240" placeholder="Till exempel: Dagens reflektion" disabled></label><label class="field"><span>När visas nästa fråga?</span><select id="set-progression" disabled><option value="automatic">Automatiskt efter deltagarens svar</option><option value="host">Jag bestämmer när nästa fråga öppnas</option></select></label><p class="small muted">Alla frågor delar samma deltagarkod. Ordningen nedan används när deltagarna svarar.</p><ol id="set-question-list" aria-label="Frågor i setet"></ol><div class="row set-edit-actions"><button class="btn" type="button" id="set-add">＋ Lägg till fråga</button><button class="btn" type="button" id="set-up">Flytta upp</button><button class="btn" type="button" id="set-down">Flytta ned</button><button class="btn" type="button" id="set-remove">Ta bort ur setet</button></div><p class="small muted" id="set-editor-status" role="status"></p></div>';
  form.prepend(panel);
  const toggle=panel.querySelector('#use-set'),settings=panel.querySelector('#set-settings'),title=panel.querySelector('#set-title'),progression=panel.querySelector('#set-progression');
- const appearanceSection=document.createElement('section');appearanceSection.className='builder-section appearance-section';appearanceSection.hidden=true;appearanceSection.innerHTML='<div class="stephead"><span class="stepnum">03</span><div><h2>Utseende</h2><p class="small muted">Ändra färger och bilder separat från frågorna.</p></div></div>';const designEditor=createSetDesignEditor();appearanceSection.append(designEditor.element);form.append(appearanceSection);
+ const appearanceButton=document.createElement('button');appearanceButton.type='button';appearanceButton.className='btn appearance-open';appearanceButton.textContent='Utseende för frågan';panel.append(appearanceButton);
+ const appearanceDialog=document.createElement('dialog');appearanceDialog.id='builder-design-dialog';appearanceDialog.className='appearance-dialog';appearanceDialog.setAttribute('aria-labelledby','builder-design-title');
+ appearanceDialog.innerHTML='<div class="dialog-heading"><div><span class="eyebrow">PULS</span><h2 id="builder-design-title">Utseende för frågan</h2></div><button type="button" class="btn" data-design-close aria-label="Stäng utseendeinställningar">×</button></div><p class="small muted">Förhandsvisningen uppdateras medan du ändrar färger och bilder.</p>';
+ const designEditor=createSetDesignEditor();designEditor.element.open=true;appearanceDialog.append(designEditor.element);const designActions=document.createElement('div');designActions.className='dialog-actions';designActions.innerHTML='<button type="button" class="btn primary" data-design-close>Färdig</button>';appearanceDialog.append(designActions);form.append(appearanceDialog);
+ appearanceButton.addEventListener('click',()=>{appearanceDialog.querySelector('#builder-design-title').textContent=toggle.checked?'Utseende för frågesetet':'Utseende för frågan';appearanceDialog.showModal();});
+ appearanceDialog.querySelectorAll('[data-design-close]').forEach(button=>button.addEventListener('click',()=>appearanceDialog.close()));
  let questions=[draft()],index=0;
  const capture=()=>{questions[index]=draft();};
  function draw(){
@@ -20,8 +25,7 @@ export function initSetBuilder({form,draft,loadDraft,openEditor}){
  }
  toggle.addEventListener('change',()=>{
   settings.hidden=!toggle.checked;title.disabled=progression.disabled=!toggle.checked;title.required=toggle.checked;
-    appearanceSection.hidden=!toggle.checked;
-  capture();draw();form.querySelector('#publish').textContent=toggle.checked?'Publicera frågeset ↗':'Publicera fråga ↗';
+  capture();draw();appearanceButton.textContent=toggle.checked?'Utseende för frågesetet':'Utseende för frågan';form.querySelector('#publish').textContent=toggle.checked?'Publicera frågeset ↗':'Publicera fråga ↗';
  });
  form.querySelector('#question-title').addEventListener('input',()=>{if(toggle.checked){capture();draw();}});
  panel.querySelector('#set-add').addEventListener('click',()=>{
@@ -36,7 +40,7 @@ export function initSetBuilder({form,draft,loadDraft,openEditor}){
  return {
   get enabled(){return toggle.checked;},
   payload(){
-   if(!toggle.checked)return draft();
+  if(!toggle.checked)return {...draft(),design:designEditor.value()};
    capture();
    for(let i=0;i<questions.length;i++){
     const q=questions[i];
@@ -44,7 +48,7 @@ export function initSetBuilder({form,draft,loadDraft,openEditor}){
     const invalid=!q.title||(['choice','check','ranking'].includes(q.kind)&&(labels.length<2||labels.some(o=>!o)||new Set(labels.map(o=>o.toLocaleLowerCase('sv'))).size!==labels.length))||(q.kind==='matrix'&&(labels.length<2||labels.some(o=>!o)||q.options.columns.length<2))||(q.kind==='scale'&&(!Number.isInteger(q.min)||!Number.isInteger(q.max)||q.min>=q.max||q.max-q.min>10))||(['number'].includes(q.kind)&&(!Number.isFinite(q.min)||!Number.isFinite(q.max)||q.min>=q.max||Math.abs(q.min)>1000000||Math.abs(q.max)>1000000));
     if(invalid){index=i;loadDraft(q);draw();form.querySelector('#question-title').focus();throw Error(`Kontrollera fråga ${i+1}: skriv en fråga och giltiga, unika svarsalternativ eller ett giltigt intervall.`);}
    }
-   return {title:title.value.trim(),progression:progression.value,questions,design:designEditor.value()};
+  return {title:title.value.trim(),progression:progression.value,questions,design:designEditor.value()};
   }
  };
 }

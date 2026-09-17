@@ -83,10 +83,10 @@ export function applySetDesign(app,set){
  if(brand.dataset.version!==signature){brand.innerHTML=html;brand.dataset.version=signature;}
 }
 
-export function editSetDesign({set,api,code,onSaved}){
+export function editSetDesign({set,api,code,onSaved,action='set-design',heading='Utseende för frågesetet'}){
  if(document.querySelector('#set-design-dialog'))return;
  const dialog=document.createElement('dialog');dialog.id='set-design-dialog';dialog.className='appearance-dialog';dialog.setAttribute('aria-labelledby','set-design-title');
- dialog.innerHTML='<h2 id="set-design-title">Utseende för frågesetet</h2><div data-editor></div><div data-save-error role="alert"></div><div class="dialog-actions"><button type="button" class="btn primary" data-save>Spara utseende</button><button type="button" class="btn" data-cancel>Avbryt</button></div>';
+ dialog.innerHTML=`<h2 id="set-design-title">${e(heading)}</h2><div data-editor></div><div data-save-error role="alert"></div><div class="dialog-actions"><button type="button" class="btn primary" data-save>Spara utseende</button><button type="button" class="btn" data-cancel>Avbryt</button></div>`;
  const editor=createSetDesignEditor(set.design);editor.element.open=true;dialog.querySelector('[data-editor]').append(editor.element);
  let busy=false;
  dialog.querySelector('[data-cancel]').addEventListener('click',()=>dialog.close());
@@ -97,7 +97,7 @@ export function editSetDesign({set,api,code,onSaved}){
   try{
    const value=editor.value();busy=true;
    dialog.querySelectorAll('button,input,select').forEach(input=>input.disabled=true);
-   const response=await api('set-design',{code,data:value});onSaved(response.design);dialog.close();
+    const response=await api(action,{code,data:value});onSaved(response.design);dialog.close();
   }catch(err){dialog.querySelector('[data-save-error]').textContent=err.message;}
   finally{busy=false;if(dialog.isConnected){dialog.querySelectorAll('button,input,select').forEach(input=>input.disabled=false);editor.refresh();}}
  });

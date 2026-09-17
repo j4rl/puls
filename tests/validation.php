@@ -23,6 +23,8 @@ rejects(fn()=>validate_answer(['kind'=>'ranking','options_json'=>'["A","B","C"]'
 $matrix=validate_question(['title'=>'Bedöm påståendena','kind'=>'matrix','options'=>['rows'=>['R1','R2'],'columns'=>['Nej','Ja']],'min'=>0,'max'=>10,'view'=>'matrix']);
 check($matrix['options']['columns']===['Nej','Ja'],'Matrix stores rows and columns');
 check(validate_answer(['kind'=>'matrix','options_json'=>'{"rows":["R1","R2"],"columns":["Nej","Ja"]}'],['R1'=>'Ja','R2'=>'Nej'])===['R1'=>'Ja','R2'=>'Nej'],'Matrix preserves row answers');
+$designQuestion=validate_set_design(['colors'=>['background'=>'#f4f5f9','surface'=>'#ffffff','text'=>'#20213a','primary'=>'#4941ce'],'images'=>[]]);
+check($designQuestion['colors']['primary']==='#4941ce','Question design uses the shared appearance contract');
 $q=['kind'=>'check','options_json'=>'["A","B"]'];
 check(validate_answer($q,['A','B'])===['A','B'],'Multiple choices');
 rejects(fn()=>validate_answer($q,['A','A']),'Duplicate checkbox choices');
