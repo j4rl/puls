@@ -62,6 +62,8 @@ I automatiskt läge går varje deltagare vidare i egen takt till sin första obe
 
 Skaparen kan välja vilken frågas resultat som visas utan att ändra deltagarnas fråga. Utskrift/PDF gäller den valda frågans resultat i den öppnade körningen. Frågesetet visas som en post i listan med sina körningar samlade i historiken. Borttagning av en körning efter bekräftelse raderar alla frågor och svar i just den körningen. Varje aktiverad fråga räknas mot gränsen för nya frågor per timme och har sin egen svarsgräns. Att spara eller redigera innehåll förbrukar inte denna gräns.
 
+**Visa bara QR-kod** på inbjudningskortet öppnar en fokuserad vy med QR-kod, deltagarkod och deltagarlänk. Frågan och resultatet döljs på storbilden medan deltagarna ansluter. Välj **Tillbaka** eller tryck **Escape** för att återgå. Funktionen finns även för enskilda frågor och ändrar bara skaparens visning; deltagarna kan fortfarande öppna frågan och svara på sina egna skärmar.
+
 Vid uppgradering eller ny installation behöver **database.sql importeras** i den databas som anges i `config.php`. Filen skapar tabellerna med prefixet `puls_`, inklusive `puls_saved_items` för sparat innehåll och `puls_saved_item_runs` för kopplingen till körningar, och innehåller inget databasnamn eller `USE`-kommando. Importen behåller befintliga frågor och svar. Lokalt görs det med `scripts/setup-local.php` enligt ovan. Webbappen behöver inga nya databasrättigheter. Befintliga oprefixade tabeller migreras inte automatiskt; exportera eller flytta data separat om en redan använd installation ska behålla sina frågor och svar.
 
 ### Eget utseende för varje set

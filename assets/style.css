@@ -1171,6 +1171,86 @@ small,
     overflow-wrap: anywhere
 }
 
+.live-lobby-actions {
+    flex-wrap: wrap
+}
+
+.join-focus-dialog {
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+    margin: 0;
+    padding: clamp(16px, 3vw, 32px);
+    border: 0;
+    background: var(--bg);
+    color: var(--text);
+    overflow: auto
+}
+
+.join-focus-dialog::backdrop {
+    background: var(--bg)
+}
+
+body:has(.join-focus-dialog[open]) {
+    overflow: hidden
+}
+
+.join-focus-toolbar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 20px
+}
+
+.join-focus-content {
+    display: grid;
+    place-items: center;
+    min-height: calc(100% - 64px)
+}
+
+.join-focus-dialog .joinaside {
+    width: min(100%, 540px);
+    align-self: center;
+    padding: clamp(22px, 4vw, 40px)
+}
+
+.join-focus-dialog .joinaside h2 {
+    font-size: clamp(26px, 4vw, 36px)
+}
+
+.join-focus-dialog .bigcode {
+    font-size: clamp(36px, 7vw, 64px);
+    white-space: nowrap
+}
+
+.join-focus-dialog .joinaside canvas {
+    width: min(32vh, 320px) !important;
+    image-rendering: pixelated
+}
+
+@media(max-height:850px) {
+    .join-focus-dialog {
+        padding: 16px
+    }
+
+    .join-focus-toolbar {
+        margin-bottom: 12px
+    }
+
+    .join-focus-dialog .joinaside {
+        padding: 24px
+    }
+
+    .join-focus-dialog .joinaside canvas {
+        margin: 12px 0
+    }
+
+    .join-focus-dialog .bigcode {
+        line-height: 1.2
+    }
+}
+
 .livetools {
     display: flex;
     gap: 10px;

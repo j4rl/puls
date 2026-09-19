@@ -1,6 +1,7 @@
 import {escapeHTML as e,renderChart,number} from './charts.js';
 import {initResultPrinting} from './results-print.js';
 import {applySetDesign,editSetDesign} from './set-design.js';
+import {initJoinFocus} from './join-focus.js';
 
 const views={bars:'Staplar',pie:'Cirkeldiagram',cloud:'Ordmoln',cards:'Textrutor',thermo:'Termometer',matrix:'Matris'};
 const allowed={choice:['bars','pie'],yesno:['pie','bars'],number:['thermo','bars'],scale:['bars','thermo'],check:['bars'],ranking:['bars'],matrix:['matrix'],sentence:['cards'],word:['cloud','cards']};
@@ -166,6 +167,7 @@ export async function liveQuestionSet({app,api,code,initial,settings,isStopped})
   return {question:questions[0].question,answers:questions[0].answers,questions,setTitle:state.set.title,design:state.set.design};
  };
  initResultPrinting(find('#print-results-button'),()=>inactive()||loading?null:{question:state.question,answers,design:state.set.design},message=>showError(find('#live-error'),message),loadPrintResults);
+ initJoinFocus(app);
  draw();
  try{await window.PulsQR.toCanvas(find('#qr'),joinUrl.href,{width:200,margin:3,errorCorrectionLevel:'M',color:{dark:'#252444',light:'#ffffff'}});}catch{find('#qr').replaceWith(Object.assign(document.createElement('p'),{textContent:'Använd deltagarkoden eller länken för att svara.'}));}
  async function poll(){if(inactive())return;if(!busy&&!document.hidden)await refresh(loading);if(!inactive())setTimeout(poll,2000);}
