@@ -31,6 +31,7 @@ För lokal databasadministration använder skriptet `root` utan lösenord enligt
 ## Funktioner och konton
 
 - Flerval, ja/nej, kryssrutor, skala, rangordning, matris, tal med valfritt intervall, meningar och enstaka ord.
+- **Frågekort** med 2–10 delfrågor: blanda fritext, ja/nej och värden med egna intervall. Välj **Ny fråga → Frågekort**, ge kortet en rubrik och fyll i delfrågorna. Deltagaren skickar alla svar tillsammans; resultatet visar ett kort per deltagare med delfrågornas rubriker och svar. Kort kan även ingå i frågeset. Skärmvy visar de 200 senaste korten, utskrift tar med samtliga.
 - Frågeset med 1–20 frågor, valfri blandning av frågetyper och en gemensam deltagarkod.
 - Spara frågor och frågeset utan att starta dem. Öppna en sparad post för att redigera innehållet eller se dess tidigare körningar. Varje **Aktivera** skapar en ny körning med egen deltagarkod, egna svar och egen progression.
 - Staplar, cirkeldiagram, termometer, ordmoln, rangordningsresultat, matris och textsvar.
@@ -123,6 +124,8 @@ Valideringstesterna täcker indata, lösenord och säker temaimport. HTTP-tester
 Gränssnittets inloggningsflöde kan även testas med `node tests/frontend-auth.mjs` när Playwright och Chromium finns installerade. Testet använder simulerade API-svar och kontrollerar bland annat gästvyn, registrering från loginrutan, inloggning, utloggning och deltagarvyn. Ange vid behov `PULS_PLAYWRIGHT_PATH` till en befintlig Playwright-installation, `PULS_BROWSER_EXECUTABLE` till webbläsarens körbara fil eller `PULS_TEST_URL` till en annan lokal appadress.
 
 Utskrift och PDF testas med `node tests/frontend-print.mjs` i samma Playwright-miljö. Testet kontrollerar bland annat fullständiga textsvar, utskriftslayout, uppdaterade resultat och att skärmvyn återställs efter utskrift.
+
+Frågekort kan testas utan databas eller Node.js: starta `php -S 127.0.0.1:8097 -t .` från projektmappen och öppna `http://127.0.0.1:8097/tests/frontend-cards.html`. Testet använder simulerade API-svar och kontrollerar redigering, sparanrop, växling mellan frågor i ett set, deltagarsvar, resultat, HTML-escaping och att utskrift tar med alla kort. Servervalideringen för kort ingår i `php tests/validation.php`.
 
 HTTP-testet inkluderar `tests/question-sets-integration.php`, som kontrollerar automatiska och skaparstyrda set, individuella framsteg, paus, behörigheter, blockerade framtida/sena svar, upprepade anrop, medlemskap och fullständig radering. `node tests/frontend-sets.mjs` testar hela flödet med Chromium och den lokala databasen, inklusive redigering, ordning, flera deltagare, omladdning, resultatval, PDF och mobilvy. Det skapar ett tillfälligt testkonto och tar bort kontots frågor och svar efteråt. Ange vid behov `PULS_PHP_PATH` till PHP; övriga Playwright-inställningar är desamma som ovan.
 

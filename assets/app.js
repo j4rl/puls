@@ -5,10 +5,11 @@ import {initSetBuilder} from './set-builder.js';
 import {joinQuestionSet,liveQuestionSet} from './question-sets.js';
 import {applySetDesign,editSetDesign} from './set-design.js';
 import {initJoinFocus} from './join-focus.js';
+import {initCardBuilder,cardAnswerInputs,readCardAnswer} from './question-card.js';
 const app=document.querySelector('#app');
-const kinds=[['choice','Flerval','Välj ett alternativ','◉'],['yesno','Ja / nej','Ta ställning','±'],['number','Värde','Ange ett tal','#'],['scale','Skala','Välj ett steg','↔'],['check','Kryssrutor','Välj flera alternativ','☑'],['ranking','Rangordning','Ordna alternativen','≡'],['matrix','Matris','Bedöm flera påståenden','⊞'],['sentence','Mening','Svara med fri text','≡'],['word','Ord','Ett ord per person','Aa']];
+const kinds=[['choice','Flerval','Välj ett alternativ','◉'],['yesno','Ja / nej','Ta ställning','±'],['number','Värde','Ange ett tal','#'],['scale','Skala','Välj ett steg','↔'],['check','Kryssrutor','Välj flera alternativ','☑'],['ranking','Rangordning','Ordna alternativen','≡'],['matrix','Matris','Bedöm flera påståenden','⊞'],['sentence','Mening','Svara med fri text','≡'],['word','Ord','Ett ord per person','Aa'],['card','Frågekort','Flera frågor på samma kort','▤']];
 const views={bars:'Staplar',pie:'Cirkeldiagram',cloud:'Ordmoln',cards:'Textrutor',thermo:'Termometer',matrix:'Matris'};
-const allowed={choice:['bars','pie'],yesno:['pie','bars'],number:['thermo','bars'],scale:['bars','thermo'],check:['bars'],ranking:['bars'],matrix:['matrix'],sentence:['cards'],word:['cloud','cards']};
+const allowed={choice:['bars','pie'],yesno:['pie','bars'],number:['thermo','bars'],scale:['bars','thermo'],check:['bars'],ranking:['bars'],matrix:['matrix'],sentence:['cards'],word:['cloud','cards'],card:['cards']};
 let settings={csrf:'',baseUrl:'',maxAnswers:5000,user:null},bootError='',stopped=false;
 const params=new URLSearchParams(location.search);
 const code=params.get('live')||params.get('join')||'';
@@ -83,6 +84,7 @@ function openAccount(initialMode='login'){
 }
 function viewOptions(kind,value){return allowed[kind].map(v=>`<option value="${v}"${v===value?' selected':''}>${views[v]}</option>`).join('');}
 function sample(q){
+ if(q.kind==='card')return [0,1,2].map(i=>q.options.map(field=>field.kind==='number'?field.min+(field.max-field.min)*[.5,.8,.3][i]:field.kind==='yesno'?['Ja','Nej','Ja'][i]:['Mer tid för diskussion.','Fler praktiska övningar.','Fortsätt som idag.'][i]));
  if(q.kind==='number')return [q.min+(q.max-q.min)*.5,q.min+(q.max-q.min)*.8,q.min+(q.max-q.min)*.7,q.min+(q.max-q.min)*.9];
  if(q.kind==='scale')return [q.min,q.min+1,q.max-1,q.max];
  if(q.kind==='matrix')return q.options.rows.map((row,i)=>Object.fromEntries([[row,q.options.columns[i%q.options.columns.length]]]));
@@ -131,43 +133,48 @@ async function createPage(){
  const matrixField=document.createElement('label');matrixField.className='field';matrixField.id='matrix-columns-wrap';matrixField.hidden=true;
  matrixField.innerHTML='<span>Kolumner (en per rad)</span><textarea id="matrix-columns" rows="3" maxlength="1100" required disabled>Instämmer inte\nDelvis\nInstämmer helt</textarea>';
  form.querySelector('#options-wrap').after(matrixField);
+ const cardBuilder=initCardBuilder();matrixField.after(cardBuilder.element);
  const editorDialog=document.createElement('dialog');editorDialog.id='question-editor-dialog';editorDialog.className='question-editor-dialog';editorDialog.setAttribute('aria-labelledby','question-editor-title');
  const editorTitle=document.createElement('h2');editorTitle.id='question-editor-title';editorTitle.textContent='Formulera frågan';editorDialog.append(editorTitle);
  const editorIntro=document.createElement('p');editorIntro.className='small muted';editorIntro.textContent='Fyll i frågan och spara när den är klar.';editorDialog.append(editorIntro);
  const titleField=form.querySelector('#question-title').parentElement,optionsWrap=form.querySelector('#options-wrap'),rangeWrap=form.querySelector('#range-wrap'),answerHelp=form.querySelector('#answer-help'),divider=answerHelp.nextElementSibling,viewStep=divider.nextElementSibling,viewField=form.querySelector('#view').parentElement,createError=form.querySelector('#create-error');
- editorDialog.append(titleField,optionsWrap,matrixField,rangeWrap,answerHelp,divider,viewStep,viewField,createError);
+ const typeGrid=form.querySelector('.kindgrid'),typeStep=typeGrid.previousElementSibling,questionStep=typeGrid.nextElementSibling;
+ editorDialog.append(typeStep,typeGrid,questionStep,titleField,optionsWrap,matrixField,cardBuilder.element,rangeWrap,answerHelp,divider,viewStep,viewField,createError);
  const editorActions=document.createElement('div');editorActions.className='dialog-actions';editorActions.innerHTML='<button type="button" class="btn" data-editor-cancel>Stäng</button><button type="button" class="btn primary" data-editor-save>Färdig</button>';editorDialog.append(editorActions);form.append(editorDialog);
  editorActions.querySelector('[data-editor-cancel]').addEventListener('click',()=>editorDialog.close());
  editorActions.querySelector('[data-editor-save]').addEventListener('click',()=>{const invalid=[...editorDialog.querySelectorAll('input,textarea,select')].find(input=>!input.checkValidity());if(invalid){invalid.reportValidity();return;}editorDialog.close();});
  const previewAside=document.querySelector('.workspace > aside'),previewBox=previewAside.querySelector('.previewbox'),previewDialog=document.createElement('dialog');previewDialog.id='question-preview-dialog';previewDialog.className='question-preview-dialog';previewDialog.setAttribute('aria-labelledby','question-preview-title');
  previewDialog.innerHTML='<div class="dialog-heading"><div><span class="eyebrow">Förhandsvisning</span><h2 id="question-preview-title">Så kan svaren se ut</h2></div><button type="button" class="btn" data-preview-close aria-label="Stäng förhandsvisning">×</button></div>';
- previewDialog.append(previewBox);const previewActions=document.createElement('div');previewActions.className='dialog-actions';previewActions.innerHTML='<button type="button" class="btn primary" data-preview-close>Stäng</button>';previewDialog.append(previewActions);previewAside.replaceChildren(Object.assign(document.createElement('button'),{className:'btn preview-open',type:'button',textContent:'Visa förhandsvisning'}));form.append(previewDialog);
- previewAside.querySelector('.preview-open').addEventListener('click',()=>{preview();previewDialog.showModal();});previewDialog.querySelectorAll('[data-preview-close]').forEach(button=>button.addEventListener('click',()=>previewDialog.close()));
- const openEditor=()=>{editorTitle.textContent=`Formulera ${kinds.find(kind=>kind[0]===activeKind)?.[1].toLocaleLowerCase('sv')||'frågan'}`;if(!editorDialog.open)editorDialog.showModal();form.elements.title.focus();};
- const editQuestion=document.createElement('button');editQuestion.type='button';editQuestion.id='question-edit';editQuestion.className='btn question-edit';editQuestion.textContent='Formulera frågan';form.querySelectorAll('.stephead')[1].after(editQuestion);editQuestion.addEventListener('click',openEditor);
- form.querySelectorAll('.kind').forEach(kind=>kind.addEventListener('click',()=>setTimeout(openEditor,0)));
+ previewDialog.append(previewBox);const previewActions=document.createElement('div');previewActions.className='dialog-actions';previewActions.innerHTML='<button type="button" class="btn primary" data-preview-close>Stäng</button>';previewDialog.append(previewActions);form.append(previewDialog);
+ const questionActions=document.createElement('div');questionActions.className='question-actions';saveError.before(questionActions);
+ const previewButton=document.createElement('button');previewButton.className='btn preview-open';previewButton.type='button';previewButton.textContent='Förhandsgranska';previewButton.setAttribute('aria-haspopup','dialog');previewButton.setAttribute('aria-controls',previewDialog.id);questionActions.append(previewButton);
+ previewAside.remove();document.querySelector('.workspace').classList.add('question-workspace');
+ previewButton.addEventListener('click',()=>{preview();previewDialog.showModal();});previewDialog.querySelectorAll('[data-preview-close]').forEach(button=>button.addEventListener('click',()=>previewDialog.close()));
+ const openEditor=()=>{editorTitle.textContent=form.elements.title.value.trim()?'Redigera fråga':'Ny fråga';if(!editorDialog.open)editorDialog.showModal();(form.elements.title.value.trim()?form.elements.title:typeGrid.querySelector('input:checked')).focus();};
+ const editQuestion=document.createElement('button');editQuestion.type='button';editQuestion.id='question-edit';editQuestion.className='btn question-edit';editQuestion.textContent='Ny fråga';editQuestion.setAttribute('aria-haspopup','dialog');editQuestion.setAttribute('aria-controls',editorDialog.id);questionActions.prepend(editQuestion);editQuestion.addEventListener('click',openEditor);
  const addOption=(value='')=>{const row=document.createElement('div');row.className='options';row.innerHTML=`<span class="optionletter"></span><input class="option-input" maxlength="100" required value="${e(value)}"><button class="delete" type="button" aria-label="Ta bort alternativ">×</button>`;row.querySelector('button').addEventListener('click',()=>{row.remove();renumber();preview();markDirty();});optionBox.append(row);renumber();};
  function renumber(){[...optionBox.children].forEach((row,i)=>{row.querySelector('.optionletter').textContent=String.fromCharCode(65+i);row.querySelector('input').setAttribute('aria-label',`Alternativ ${i+1}`);row.querySelector('button').disabled=optionBox.children.length<=2;});document.querySelector('#add-option').disabled=optionBox.children.length>=10;}
  addOption('Praktiska övningar');addOption('Diskussioner');addOption('Genomgångar');
- function draft(){const labels=[...optionBox.querySelectorAll('input')].map(el=>el.value.trim());return {kind:activeKind,title:form.elements.title.value.trim(),options:activeKind==='yesno'?['Ja','Nej']:['choice','check','ranking'].includes(activeKind)?labels:activeKind==='matrix'?{rows:labels,columns:form.querySelector('#matrix-columns').value.split('\n').map(value=>value.trim()).filter(Boolean)}:[],min:document.querySelector('#min').valueAsNumber,max:document.querySelector('#max').valueAsNumber,view:document.querySelector('#view').value};}
+ function draft(){const labels=[...optionBox.querySelectorAll('input')].map(el=>el.value.trim());return {kind:activeKind,title:form.elements.title.value.trim(),options:activeKind==='card'?cardBuilder.value():activeKind==='yesno'?['Ja','Nej']:['choice','check','ranking'].includes(activeKind)?labels:activeKind==='matrix'?{rows:labels,columns:form.querySelector('#matrix-columns').value.split('\n').map(value=>value.trim()).filter(Boolean)}:[],min:document.querySelector('#min').valueAsNumber,max:document.querySelector('#max').valueAsNumber,view:document.querySelector('#view').value};}
  function preview(){
   const q=draft();document.querySelector('#max').setCustomValidity(['number','scale'].includes(activeKind)&&q.max<=q.min?'Största värdet måste vara större än det minsta.':'');
   if(q.max<=q.min||!Number.isFinite(q.max)||!Number.isFinite(q.min)){q.min=0;q.max=10;}
-  if(Array.isArray(q.options))q.options=q.options.map((s,i)=>s||`Alternativ ${i+1}`);
+  if(q.kind==='card')q.options=q.options.map((field,i)=>({...field,title:field.title||`Delfråga ${i+1}`,min:Number.isFinite(field.min)?field.min:0,max:Number.isFinite(field.max)&&field.max>field.min?field.max:10}));
+  else if(Array.isArray(q.options))q.options=q.options.map((s,i)=>s||`Alternativ ${i+1}`);
   else{q.options.rows=q.options.rows.map((s,i)=>s||`Påstående ${i+1}`);if(!q.options.columns.length)q.options.columns=['Kolumn 1','Kolumn 2'];}
   document.querySelector('#preview-title').textContent=q.title||'Vad vill du att vi fokuserar på idag?';
-  editQuestion.textContent=q.title?`Redigera: ${q.title}`:'Formulera frågan';
+  editQuestion.textContent=q.title?`Redigera: ${q.title}`:'Ny fråga';
   const a=sample(q);document.querySelector('#preview-chart').innerHTML=renderChart(q,a);document.querySelector('#sample-count').textContent=`${a.length} exempelsvar`;
  }
  form.addEventListener('change',event=>{
   if(event.target.name==='kind'){
    activeKind=event.target.value;form.querySelectorAll('.kind').forEach(el=>el.classList.toggle('selected',el.querySelector('input').checked));
+   cardBuilder.setActive(activeKind==='card');
    const optionsVisible=['choice','check','ranking','matrix'].includes(activeKind);optionsWrap.hidden=!optionsVisible;optionBox.querySelectorAll('input').forEach(el=>el.disabled=!optionsVisible);
    matrixField.hidden=activeKind!=='matrix';matrixField.querySelector('textarea').disabled=activeKind!=='matrix';
    rangeWrap.hidden=!['number','scale'].includes(activeKind);rangeWrap.querySelectorAll('input').forEach(el=>{el.disabled=!['number','scale'].includes(activeKind);el.required=['number','scale'].includes(activeKind);el.step=activeKind==='scale'?'1':'any';});
    document.querySelector('#view').innerHTML=viewOptions(activeKind,allowed[activeKind][0]);
-   answerHelp.textContent={word:'Ett ord per deltagare, högst 40 tecken.',sentence:'Ett textsvar med fri text, högst 500 tecken.',number:'Deltagaren anger ett tal inom intervallet. Decimaler är tillåtna.',scale:'Välj ett helt steg, till exempel 1–5.',yesno:'Deltagaren väljer Ja eller Nej.',check:'Deltagaren kan välja flera alternativ.',ranking:'Deltagaren ordnar alla alternativ från viktigast till minst viktigt.',matrix:'Deltagaren väljer en kolumn för varje påstående.',choice:''}[activeKind];
-   if(event.isTrusted)openEditor();
+   answerHelp.textContent={card:'Varje deltagare skickar ett kort med svar på alla delfrågor.',word:'Ett ord per deltagare, högst 40 tecken.',sentence:'Ett textsvar med fri text, högst 500 tecken.',number:'Deltagaren anger ett tal inom intervallet. Decimaler är tillåtna.',scale:'Välj ett helt steg, till exempel 1–5.',yesno:'Deltagaren väljer Ja eller Nej.',check:'Deltagaren kan välja flera alternativ.',ranking:'Deltagaren ordnar alla alternativ från viktigast till minst viktigt.',matrix:'Deltagaren väljer en kolumn för varje påstående.',choice:''}[activeKind];
   }
   preview();
  });
@@ -177,7 +184,8 @@ async function createPage(){
   loadingDraft=true;
   try{
    const radio=form.querySelector(`[name="kind"][value="${q.kind}"]`);radio.checked=true;radio.dispatchEvent(new Event('change',{bubbles:true}));
-   form.elements.title.value=q.title;optionBox.replaceChildren();const labels=q.kind==='matrix'?q.options.rows:q.options;(labels?.length?labels:['','']).forEach(addOption);
+   form.elements.title.value=q.title;optionBox.replaceChildren();const labels=q.kind==='card'?[]:q.kind==='matrix'?q.options.rows:q.options;(labels?.length?labels:['','']).forEach(addOption);
+   cardBuilder.load(q.kind==='card'?q.options:undefined);
    optionBox.querySelectorAll('input').forEach(el=>el.disabled=!['choice','check','ranking','matrix'].includes(q.kind));
    if(q.kind==='matrix')matrixField.querySelector('textarea').value=q.options.columns.join('\n');
    document.querySelector('#min').value=q.min??0;document.querySelector('#max').value=q.max??10;document.querySelector('#view').value=q.view;preview();
@@ -341,17 +349,20 @@ async function joinQuestion(){
   if(bootError)throw Error(bootError);
   const initial=await api('question',{code});if(initial.set){joinQuestionSet({app,api,code,initial,isStopped:()=>stopped});return;}const {question:q,answered}=initial;if(answered){answeredPage();return;}
   let inputs='';
-  if(['choice','yesno','check'].includes(q.kind)) inputs=`<fieldset><legend class="sr-only">Ditt svar</legend>${q.options.map((opt,i)=>`<label class="answerchoice"><input type="${q.kind==='check'?'checkbox':'radio'}" name="answer" value="${i}"${q.kind==='check'?'':' required'}><span>${e(opt)}</span></label>`).join('')}</fieldset>`;
+  if(q.kind==='card')inputs=cardAnswerInputs(q);
+  else if(['choice','yesno','check'].includes(q.kind)) inputs=`<fieldset><legend class="sr-only">Ditt svar</legend>${q.options.map((opt,i)=>`<label class="answerchoice"><input type="${q.kind==='check'?'checkbox':'radio'}" name="answer" value="${i}"${q.kind==='check'?'':' required'}><span>${e(opt)}</span></label>`).join('')}</fieldset>`;
   else if(['number','scale'].includes(q.kind))inputs=q.kind==='scale'?`<fieldset><legend>Välj ett steg</legend>${Array.from({length:q.max-q.min+1},(_,i)=>q.min+i).map(value=>`<label class="answerchoice"><input type="radio" name="answer" value="${value}" required><span>${number(value)}</span></label>`).join('')}</fieldset>`:`<label class="field"><span>Ditt värde (${number(q.min)}–${number(q.max)})</span><input type="number" name="answer" min="${e(q.min)}" max="${e(q.max)}" step="any" inputmode="decimal" required placeholder="Ange ett tal"></label>`;
   else if(q.kind==='ranking')inputs=`<fieldset><legend>Ordna från viktigast till minst viktigt</legend><ol class="ranking-input">${q.options.map((opt,i)=>`<li data-rank-value="${e(opt)}"><span>${e(opt)}</span><button type="button" class="rank-up" aria-label="Flytta ${e(opt)} uppåt"${i?'':' disabled'}>↑</button><button type="button" class="rank-down" aria-label="Flytta ${e(opt)} nedåt"${i===q.options.length-1?'':' '}>↓</button></li>`).join('')}</ol></fieldset>`;
   else if(q.kind==='matrix')inputs=`<fieldset class="matrix-input"><legend>Välj ett svar per påstående</legend>${q.options.rows.map((row,i)=>`<div class="matrix-row"><strong>${e(row)}</strong><div>${q.options.columns.map((column,j)=>`<label><input type="radio" name="matrix-${i}" value="${j}" required><span>${e(column)}</span></label>`).join('')}</div></div>`).join('')}</fieldset>`;
   else inputs=`<label class="field"><span>${q.kind==='word'?'Ditt ord':'Din mening'}</span>${q.kind==='word'?'<input name="answer" maxlength="40" required placeholder="Skriv ett ord" autocomplete="off">':'<textarea name="answer" rows="4" maxlength="500" required placeholder="Vad tänker du?"></textarea>'}</label>`;
   app.innerHTML=`<section class="panel joincard"><span class="eyebrow">Fråga ${e(code)}</span><h1>${e(q.title)}</h1><p class="muted">${e(kinds.find(k=>k[0]===q.kind)?.[2])}. Ett svar per webbläsare.</p><p id="paused-note" class="error" role="status"${q.open?' hidden':''}>Frågan är pausad. Vi väntar på att den öppnas.</p><form id="answer-form">${inputs}<div id="answer-error"></div><button id="send-answer" class="btn primary big"${q.open?'':' disabled'}>Skicka svar →</button></form><p id="connection-note" class="small muted" role="status" hidden></p><p class="small muted" style="margin-top:20px">Ditt namn efterfrågas inte. Skriv inte känsliga personuppgifter i fritext.</p></section>`;
   applySetDesign(app,{title:q.title,design:q.design});
+  if(q.kind==='card')app.querySelector('#send-answer').textContent='Skicka kort →';
   app.querySelectorAll('.rank-up,.rank-down').forEach(button=>button.addEventListener('click',()=>{const item=button.closest('li'),other=button.classList.contains('rank-up')?item.previousElementSibling:item.nextElementSibling;if(!other)return;item.parentElement.insertBefore(button.classList.contains('rank-up')?item:other,button.classList.contains('rank-up')?other:item);item.parentElement.querySelectorAll('li').forEach((li,i)=>{li.querySelector('.rank-up').disabled=!i;li.querySelector('.rank-down').disabled=i===item.parentElement.children.length-1;});}));
   let sending=false,done=false;
   document.querySelector('#answer-form').addEventListener('submit',async ev=>{ev.preventDefault();const form=ev.target,button=document.querySelector('#send-answer');if(sending||done||!q.open||!form.reportValidity())return;error(document.querySelector('#answer-error'),'');let value;
-   if(q.kind==='check')value=[...form.querySelectorAll('input:checked')].map(el=>q.options[Number(el.value)]);
+   if(q.kind==='card')value=readCardAnswer(q,form);
+   else if(q.kind==='check')value=[...form.querySelectorAll('input:checked')].map(el=>q.options[Number(el.value)]);
    else if(['choice','yesno'].includes(q.kind))value=q.options[Number(new FormData(form).get('answer'))];
   else if(['number','scale'].includes(q.kind))value=form.elements.answer.valueAsNumber;
   else if(q.kind==='ranking')value=[...form.querySelectorAll('[data-rank-value]')].map(item=>item.dataset.rankValue);
@@ -359,7 +370,7 @@ async function joinQuestion(){
    else value=form.elements.answer.value.trim();
    if(Array.isArray(value)&&!value.length){error(document.querySelector('#answer-error'),'Välj minst ett alternativ.');return;}
   if(['number','scale'].includes(q.kind)&&!Number.isFinite(value)){error(document.querySelector('#answer-error'),'Ange ett tal inom frågans intervall.');return;}
-   sending=true;button.disabled=true;button.textContent='Skickar…';try{await api('answer',{code,data:{value}});if(stopped)return;done=true;answeredPage();}catch(err){if(!done&&!stopped){error(document.querySelector('#answer-error'),err.message);button.disabled=!q.open;button.textContent='Skicka svar →';}}finally{sending=false;}
+   sending=true;button.disabled=true;button.textContent='Skickar…';try{await api('answer',{code,data:{value}});if(stopped)return;done=true;answeredPage();}catch(err){if(!done&&!stopped){error(document.querySelector('#answer-error'),err.message);button.disabled=!q.open;button.textContent=q.kind==='card'?'Skicka kort →':'Skicka svar →';}}finally{sending=false;}
   });
   async function checkState(){
    if(done||stopped)return;

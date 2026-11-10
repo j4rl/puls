@@ -71,8 +71,13 @@ async function assertCreator(page){
  await page.locator('#create-form').waitFor();
  await page.locator('#question-list .emptylist').waitFor();
  assert.equal(await page.locator('.landing-hero,.landing-steps,#account-dialog').count(),0);
- await page.locator('.kind').first().click();
+ assert.equal(await page.locator('.kindgrid').isVisible(),false);
+ await page.locator('#question-edit').click();
  await page.locator('#question-editor-dialog').waitFor({state:'visible'});
+ assert.equal(await page.locator('#question-editor-dialog .kindgrid').isVisible(),true);
+ await page.locator('[name=kind][value=sentence]').check();
+ assert.equal(await page.locator('#options-wrap').isVisible(),false);
+ assert.equal(await page.locator('[name=kind][value=sentence]').evaluate(input=>input===document.activeElement),true);
  await page.locator('#question-title').fill('En inloggad användares fråga');
  await page.locator('[data-editor-save]').click();
  await page.locator('.preview-open').click();

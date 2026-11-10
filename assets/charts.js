@@ -25,7 +25,7 @@ function textClusters(question,answers){
  return `<section class="text-clusters"><div class="cluster-heading"><span>Återkommande teman</span><small>${groups.length} kluster</small></div><div class="cluster-grid">${groups.map(group=>`<article class="cluster"><strong>${escapeHTML(group.keyword)}</strong><b>${group.items.length}</b><p>${escapeHTML(group.items[0])}</p></article>`).join('')}</div></section>`;
 }
 export function grouped(question,answers){
- if(question.kind==='matrix')return [];
+ if(['matrix','card'].includes(question.kind))return [];
  if(question.kind==='number'){
   const min=Number(question.min),max=Number(question.max);
   if(!Number.isFinite(min)||!Number.isFinite(max)||max<=min)return [];
@@ -54,6 +54,7 @@ export function renderChart(q,answers,{forPrint=false}={}){
  const percent=v=>Math.round(v/answers.length*100);
  const accessible=`${forPrint?'<section class="datadetails"><h2>Siffrorna bakom diagrammet</h2>':'<details class="datadetails"><summary>Visa siffrorna</summary>'}<ul>${data.map(d=>`<li>${e(d.label)}: ${d.count}${['choice','yesno','check','number'].includes(q.kind)?` (${percent(d.count)} %)`:''}</li>`).join('')}</ul>${q.kind==='number'?'<small>Intervall inkluderar undre gränsen. Det sista inkluderar även max.</small>':''}${forPrint?'</section>':'</details>'}`;
     const pulse=livePulse(answers.length);
+ if(q.kind==='card')return `${pulse}<div class="viz cards response-cards">${answers.slice(forPrint?0:-200).reverse().map(answer=>`<article class="quote response-card"><dl>${q.options.map((field,i)=>`<div><dt>${e(field.title)}</dt><dd>${field.kind==='number'?number(answer[i]):e(answer[i])}</dd></div>`).join('')}</dl></article>`).join('')}</div>${!forPrint&&answers.length>200?'<p class="small">De 200 senaste korten visas.</p>':''}`;
  if(q.kind==='matrix'){
   const rows=q.options.rows,columns=q.options.columns;
   const cells=rows.map(row=>columns.map(column=>answers.filter(answer=>answer&&answer[row]===column).length));

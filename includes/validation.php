@@ -1,7 +1,7 @@
 <?php
 declare(strict_types=1);
 function allowed_views(): array {
-    return ['choice'=>['bars','pie'], 'yesno'=>['pie','bars'], 'number'=>['thermo','bars'], 'scale'=>['bars','thermo'], 'check'=>['bars'], 'ranking'=>['bars'], 'matrix'=>['matrix'], 'sentence'=>['cards'], 'word'=>['cloud','cards']];
+    return ['choice'=>['bars','pie'], 'yesno'=>['pie','bars'], 'number'=>['thermo','bars'], 'scale'=>['bars','thermo'], 'check'=>['bars'], 'ranking'=>['bars'], 'matrix'=>['matrix'], 'sentence'=>['cards'], 'word'=>['cloud','cards'], 'card'=>['cards']];
 }
 function valid_text($value, int $max): bool {
     return is_string($value) && mb_check_encoding($value, 'UTF-8') && trim($value) !== '' && mb_strlen(trim($value), 'UTF-8') <= $max && !str_contains($value, "\0");
@@ -50,7 +50,19 @@ function validate_question(array $data): array {
     if (!is_string($kind) || !isset(allowed_views()[$kind]) || !valid_text($data['title'] ?? null, 240)) {
         throw new InvalidArgumentException('Skriv en fråga (högst 240 tecken) och välj en frågetyp.');
     }
-    if ($kind === 'matrix') {
+    if ($kind === 'card') {
+        $fields = $data['options'] ?? null;
+        if (!is_array($fields) || !array_is_list($fields) || count($fields)<2 || count($fields)>10) throw new InvalidArgumentException('Ett frågekort behöver 2–10 delfrågor.');
+        $options = [];
+        foreach ($fields as $i=>$field) {
+            if (!is_array($field) || !in_array($field['kind'] ?? null, ['sentence','yesno','number'], true)) throw new InvalidArgumentException('Välj fritext, ja/nej eller värde för varje delfråga.');
+            try {
+                $options[] = validate_question(array_replace($field, ['view'=>allowed_views()[$field['kind']][0]]));
+            } catch (InvalidArgumentException $e) {
+                throw new InvalidArgumentException('Delfråga '.($i+1).': '.$e->getMessage());
+            }
+        }
+    } elseif ($kind === 'matrix') {
         $matrix = $data['options'] ?? null;
         $rows = is_array($matrix) ? ($matrix['rows'] ?? null) : null;
         $columns = is_array($matrix) ? ($matrix['columns'] ?? null) : null;
@@ -68,11 +80,11 @@ function validate_question(array $data): array {
         throw new InvalidArgumentException('Ange mellan 2 och 10 svarsalternativ.');
     }
     foreach ($options as $option) {
-        if ($kind === 'matrix') break;
+        if (in_array($kind, ['matrix','card'], true)) break;
         if (!valid_text($option, 100)) throw new InvalidArgumentException('Varje alternativ behöver 1–100 tecken.');
     }
-    if ($kind !== 'matrix') $options = array_values(array_map('trim', $options));
-    if ($kind !== 'matrix' && count(array_unique(array_map(static function($s){ return mb_strtolower($s,'UTF-8'); }, $options))) !== count($options)) {
+    if (!in_array($kind, ['matrix','card'], true)) $options = array_values(array_map('trim', $options));
+    if (!in_array($kind, ['matrix','card'], true) && count(array_unique(array_map(static function($s){ return mb_strtolower($s,'UTF-8'); }, $options))) !== count($options)) {
         throw new InvalidArgumentException('Svarsalternativen måste vara unika.');
     }
     $min = in_array($kind, ['number','scale'], true) ? ($data['min'] ?? null) : 0;
@@ -107,6 +119,18 @@ function validate_answer(array $question, $value) {
         return $value;
     }
     $options = json_decode($question['options_json'], true, 512, JSON_THROW_ON_ERROR);
+    if ($kind === 'card') {
+        if (!is_array($value) || !array_is_list($value) || count($value)!==count($options)) throw new InvalidArgumentException('Besvara alla delfrågor på kortet.');
+        $result = [];
+        foreach ($options as $i=>$field) {
+            try {
+                $result[] = validate_answer(['kind'=>$field['kind'], 'options_json'=>json_encode($field['options'], JSON_THROW_ON_ERROR), 'min_value'=>$field['min'], 'max_value'=>$field['max']], $value[$i]);
+            } catch (InvalidArgumentException $e) {
+                throw new InvalidArgumentException('Delfråga '.($i+1).': '.$e->getMessage());
+            }
+        }
+        return $result;
+    }
     if ($kind === 'ranking') {
         if (!is_array($value) || count($value)!==count($options) || array_keys($value)!==range(0,count($value)-1)) throw new InvalidArgumentException('Rangordna alla alternativ en gång.');
         foreach ($value as $item) if (!is_string($item)) throw new InvalidArgumentException('Ogiltig rangordning.');

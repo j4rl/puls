@@ -1,0 +1,121 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Frågekort – webbläsartest</title>
+<link rel="stylesheet" href="../assets/style.css">
+<button id="theme-settings" hidden></button><div id="account-controls"></div><main id="app"></main>
+<pre id="test-result">RUNNING</pre>
+<script type="module">
+// Serve with PHP's local development server; all API calls below are mocked.
+// Open tests/frontend-cards.html, or use a headless browser with --dump-dom.
+const params=new URLSearchParams(location.search),scenario=params.get('case');
+const result=document.querySelector('#test-result');
+const assert=(condition,message)=>{if(!condition)throw Error(message);};
+const equal=(actual,expected,message)=>assert(JSON.stringify(actual)===JSON.stringify(expected),message);
+const waitFor=async check=>{for(let i=0;i<200;i++){if(check())return;await new Promise(resolve=>setTimeout(resolve,10));}throw Error('Timed out');};
+const fields=[
+ {kind:'sentence',title:'Vad vill du förbättra?',options:[],min:0,max:10,view:'cards'},
+ {kind:'yesno',title:'Vill du delta?',options:['Ja','Nej'],min:0,max:10,view:'pie'},
+ {kind:'number',title:'Hur viktigt är det?',options:[],min:-5,max:10,view:'thermo'}
+];
+const question={id:1,position:0,code:'123456',title:'Förbättringskort',kind:'card',options:fields,min:0,max:10,view:'cards',open:true};
+const answer=['Mer övning <img src=x onerror=alert(1)>','Ja',0];
+const errors=[];window.addEventListener('error',event=>errors.push(event.message));
+window.addEventListener('unhandledrejection',event=>errors.push(String(event.reason)));
+try{
+ if(!scenario){
+  const cases=['create','join','set','live'],completed=new Set();
+  window.addEventListener('message',event=>{
+   if(!cases.includes(event.data?.case))return;
+   if(event.data.error){result.textContent='FAIL '+event.data.case+': '+event.data.error;return;}
+   completed.add(event.data.case);
+   if(completed.size===cases.length)result.textContent='PASS: creator, individual participant, set participant, live results and print; no browser errors';
+  });
+  for(const name of cases){const frame=document.createElement('iframe');frame.style.cssText=`width:${name==='join'||name==='set'?390:1200}px;height:900px`;frame.src=`?case=${name}${name==='join'||name==='set'?'&join=123456':name==='live'?'&live=123456':''}`;document.body.append(frame);}
+ }else{
+  let posted=null,answered=false;
+  const set={id:1,title:'Set med kort',code:'123456',total:1,progression:'automatic',open:true};
+  window.PulsQR={toCanvas:async()=>{}};
+  window.fetch=async(input,options={})=>{
+   const action=new URL(input,location.href).searchParams.get('action');
+   const data=options.body?JSON.parse(options.body):null;
+   let body;
+   if(action==='bootstrap')body={csrf:'test',user:{id:1,name:'Test',email:'test@example.test',theme:null},baseUrl:new URL('../',location.href).href,maxAnswers:5000};
+   else if(action==='list')body={questions:[]};
+   else if(action==='saved-list')body={items:[]};
+   else if(action==='save'){posted=data;return new Response(JSON.stringify({error:'Test stops before navigation'}),{status:400});}
+   else if(action==='question')body=scenario==='set'?{set,question:answered?null:question,complete:answered,waiting:false}:{question,answered};
+   else if(action==='answer'){posted=data;answered=true;body={ok:true};}
+   else if(action==='results')body={question,answers:[{id:1,value:answer},{id:2,value:['En annan idé','Nej',8]}]};
+   else throw Error('Unexpected API call '+action);
+   return new Response(JSON.stringify(body),{status:200,headers:{'Content-Type':'application/json'}});
+  };
+  await import('../assets/app.js');
+  const find=selector=>document.querySelector(selector);
+  const fill=(input,value)=>{input.value=value;input.dispatchEvent(new Event('input',{bubbles:true}));};
+  const choose=(input,value)=>{input.value=value;input.dispatchEvent(new Event('change',{bubbles:true}));};
+  if(scenario==='create'){
+   await waitFor(()=>find('#question-edit'));
+   assert(!find('#question-editor-dialog').open,'Editor starts closed');
+   find('#question-edit').click();
+   const card=find('[name=kind][value=card]');card.checked=true;card.dispatchEvent(new Event('change',{bubbles:true}));
+   assert(find('#question-editor-dialog').contains(card),'Type selection belongs inside the editor');
+   fill(find('#question-title'),'Förbättringskort');
+   const rows=[...document.querySelectorAll('.card-field')];
+   rows.forEach((row,i)=>fill(row.querySelector('[data-card-title]'),fields[i].title));
+   fill(rows[2].querySelector('[data-card-min]'),'-5');
+   assert(find('#question-title').form.checkValidity(),'Complete card is valid');
+   fill(rows[2].querySelector('[data-card-max]'),'-6');
+   assert(!find('#question-title').form.checkValidity(),'Invalid range blocks saving');
+   fill(rows[2].querySelector('[data-card-max]'),'10');
+   find('[data-card-add]').click();
+   assert(document.querySelectorAll('.card-field').length===4,'Can add a field');
+   document.querySelectorAll('[data-card-remove]')[3].click();
+   assert(document.querySelectorAll('.card-field').length===3,'Can remove a field');
+   find('[data-editor-save]').click();assert(!find('#question-editor-dialog').open,'Editor closes after validation');
+   find('.preview-open').click();assert(document.querySelectorAll('.response-card').length===3,'Preview displays complete cards');
+   find('[data-preview-close]').click();
+   find('#publish').click();await waitFor(()=>posted);
+   await waitFor(()=>!find('#publish').disabled);
+   equal(posted.payload.options,fields,'Saving preserves field types, labels and range');
+   assert(posted.payload.kind==='card','Saves as card');posted=null;
+   const toggle=find('#use-set');toggle.checked=true;toggle.dispatchEvent(new Event('change',{bubbles:true}));
+   fill(find('#set-title'),'Blandat set');find('#set-add').click();
+   assert(find('[name=kind][value=choice]').checked,'New question starts with its own type');
+   equal([...document.querySelectorAll('[data-card-title]')].map(input=>input.value),['','',''],'New questions do not inherit previous card fields');
+   fill(find('#question-title'),'En annan fråga');document.querySelectorAll('.option-input').forEach((input,i)=>fill(input,`Alternativ ${i+1}`));
+   find('[data-editor-save]').click();find('[data-index="0"]').click();
+   assert(find('[name=kind][value=card]').checked,'Returning to card restores its type');
+   equal([...document.querySelectorAll('[data-card-title]')].map(input=>input.value),fields.map(field=>field.title),'Card fields survive question switching');
+   equal([...document.querySelectorAll('[data-card-kind]')].map(input=>input.value),fields.map(field=>field.kind),'Card types survive question switching');
+   find('[data-editor-save]').click();find('#publish').click();await waitFor(()=>posted);
+   assert(posted.type==='set','Can save a mixed set');equal(posted.payload.questions[0].options,fields,'Set preserves the complete card');
+  }else if(scenario==='join'||scenario==='set'){
+   await waitFor(()=>find('#answer-form'));
+   assert(find('#send-answer').textContent==='Skicka kort →','Card submission has a clear label');
+   assert(document.documentElement.scrollWidth<=innerWidth,'Participant card fits the mobile viewport');
+   fill(find('[name=card-0]'),answer[0]);
+   assert(!find('#answer-form').checkValidity(),'All subquestions must be answered');
+   find('[name=card-1][value=Ja]').checked=true;fill(find('[name=card-2]'),'0');
+   assert(find('#answer-form').checkValidity(),'Zero is a valid numeric answer');
+   find('#send-answer').click();await waitFor(()=>posted);
+   equal(posted.value,answer,'One submission preserves all related answers');
+   if(scenario==='set')assert(posted.questionId===1,'Set submission uses the current question ID');
+   await waitFor(()=>!find('#answer-form'));
+  }else{
+   await waitFor(()=>document.querySelectorAll('#live-chart .response-card').length===2);
+   find('#show-live-view').click();
+   const cards=[...document.querySelectorAll('#live-chart .response-card')];
+   equal(cards[0].querySelectorAll('dd')[2].textContent,'8','Newest card appears first');
+   equal([...cards[1].querySelectorAll('dd')].map(node=>node.textContent),answer.map(String),'Each card retains all of its answers');
+   assert(!find('#live-chart img'),'Text answers are escaped');
+   const {renderChart}=await import('../assets/charts.js');
+   const print=document.createElement('div');print.innerHTML=renderChart(question,Array.from({length:205},()=>answer),{forPrint:true});
+   assert(print.querySelectorAll('.response-card').length===205,'Print includes every card');
+   const screen=document.createElement('div');screen.innerHTML=renderChart(question,Array.from({length:205},()=>answer));
+   assert(screen.querySelectorAll('.response-card').length===200,'Screen caps displayed cards consistently');
+  }
+  assert(!errors.length,errors.join('\n'));
+  result.textContent='PASS '+scenario;parent.postMessage({case:scenario},'*');
+ }
+}catch(error){result.textContent='FAIL '+(error.stack||error);if(scenario)parent.postMessage({case:scenario,error:error.stack||String(error)},'*');}
+</script>

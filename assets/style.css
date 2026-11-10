@@ -1105,11 +1105,7 @@ small,
 }
 
 .stage:fullscreen .stage-navigation {
-    position: absolute;
-    left: 24px;
-    right: 24px;
-    bottom: 24px;
-    margin: 0
+    position: static
 }
 
 .stage:fullscreen .stage-navigation .btn {
@@ -1263,12 +1259,51 @@ body:has(.join-focus-dialog[open]) {
     border-radius: 0;
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: flex-start;
+    min-height: 0;
     overflow: auto
 }
 
-.stage:fullscreen .viz {
-    flex: 1
+.stage:fullscreen > * {
+    flex-shrink: 0
+}
+
+.fullscreen-invitation {
+    display: none
+}
+
+.stage:fullscreen .fullscreen-invitation {
+    display: block;
+    align-self: stretch;
+    margin-bottom: 20px;
+    padding: 12px 16px;
+    border: 1px solid currentColor;
+    border-radius: 12px
+}
+
+.fullscreen-invitation summary {
+    cursor: pointer;
+    font-weight: 700
+}
+
+.fullscreen-invitation-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 24px;
+    padding-top: 16px;
+    text-align: center
+}
+
+.fullscreen-invitation-content canvas {
+    width: min(240px, 100%);
+    height: auto !important
+}
+
+.fullscreen-invitation-content > div {
+    min-width: 0;
+    overflow-wrap: anywhere
 }
 
 .liveempty {
@@ -1555,6 +1590,75 @@ select {
 
 .quote {
     white-space: pre-wrap
+}
+
+.card-builder {
+    margin: 20px 0;
+    padding: 0;
+    border: 0;
+    min-width: 0
+}
+
+.card-builder > legend {
+    font-weight: 700
+}
+
+.card-field {
+    margin: 16px 0;
+    padding: 18px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm)
+}
+
+.card-field-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px
+}
+
+.card-answer-field {
+    min-width: 0;
+    margin: 20px 0;
+    border: 0;
+    padding: 0
+}
+
+.card-answer-field legend {
+    font-weight: 700;
+    margin-bottom: 10px
+}
+
+.response-cards {
+    align-items: start
+}
+
+.response-card {
+    white-space: normal;
+    break-inside: avoid
+}
+
+.response-card dl {
+    margin: 0
+}
+
+.response-card dl > div + div {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid #ffffff22
+}
+
+.response-card dt {
+    font-size: 14px;
+    font-weight: 700;
+    opacity: .8
+}
+
+.response-card dd {
+    margin: 6px 0 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere
 }
 
 .liveempty small {
@@ -1894,13 +1998,24 @@ ld-theme-toggle:not(:defined) {
     margin: 20px 0
 }
 
+.workspace.question-workspace {
+    display: block
+}
+
+.question-actions {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 12px
+}
+
+.question-actions .question-edit {
+    flex: 1 1 280px;
+    margin: 0
+}
+
 .preview-open {
-    width: 100%;
-    min-height: 150px;
-    border: 1px dashed var(--primary);
-    background: var(--surface-muted);
-    color: var(--primary);
-    font-size: 17px
+    flex: 0 0 auto
 }
 
 .appearance-section {
@@ -2962,6 +3077,14 @@ body:has(#set-backdrop)>#app {
         margin-bottom: 3mm;
         font-size: 11pt;
         white-space: pre-wrap
+    }
+
+    #print-results .response-card {
+        white-space: normal
+    }
+
+    #print-results .response-card dl > div + div {
+        border-color: #bbb
     }
 
     #print-results .datadetails ul {

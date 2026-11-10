@@ -24,6 +24,34 @@ $matrix=validate_question(['title'=>'Bedöm påståendena','kind'=>'matrix','opt
 check($matrix['options']['columns']===['Nej','Ja'],'Matrix stores rows and columns');
 check(validate_answer(['kind'=>'matrix','options_json'=>'{"rows":["R1","R2"],"columns":["Nej","Ja"]}'],['R1'=>'Ja','R2'=>'Nej'])===['R1'=>'Ja','R2'=>'Nej'],'Matrix preserves row answers');
 $designQuestion=validate_set_design(['colors'=>['background'=>'#f4f5f9','surface'=>'#ffffff','text'=>'#20213a','primary'=>'#4941ce'],'images'=>[]]);
+$card=['title'=>'Förbättringskort','kind'=>'card','view'=>'cards','options'=>[
+    ['kind'=>'sentence','title'=>'Vad vill du förbättra?'],
+    ['kind'=>'yesno','title'=>'Vill du delta?'],
+    ['kind'=>'number','title'=>'Hur viktigt är det?','min'=>-2.5,'max'=>10]
+]];
+$normalizedCard=validate_question($card);
+$cardQuestion=['kind'=>'card','options_json'=>json_encode($normalizedCard['options'],JSON_THROW_ON_ERROR)];
+check($normalizedCard['options'][1]['options']===['Ja','Nej'],'Card normalizes its subquestions');
+check(validate_answer($cardQuestion,['  Mer övning  ','Ja',0])===['Mer övning','Ja',0],'Card preserves related text, yes/no and zero answers');
+check(validate_question_set(['title'=>'Set med kort','progression'=>'host','questions'=>[$card]])['questions'][0]['kind']==='card','Cards work inside question sets');
+check(validate_question($normalizedCard)===$normalizedCard,'Saved cards can be validated again without changing their schema');
+rejects(fn()=>validate_question(array_replace($card,['options'=>[$card['options'][0]]])),'Card needs at least two subquestions');
+rejects(fn()=>validate_question(array_replace($card,['options'=>array_fill(0,11,$card['options'][0])])),'Card rejects more than ten subquestions');
+rejects(fn()=>validate_question(array_replace($card,['options'=>[1=>$card['options'][0],2=>$card['options'][1]]])),'Card rejects non-list fields');
+rejects(fn()=>validate_question(array_replace($card,['options'=>[$card,$card]])),'Nested cards rejected');
+rejects(fn()=>validate_question(array_replace($card,['options'=>[['kind'=>'sentence','title'=>''],$card['options'][1]]])),'Untitled card field rejected');
+rejects(fn()=>validate_question(array_replace($card,['options'=>[$card['options'][0],['kind'=>'number','title'=>'Värde','min'=>10,'max'=>0]]])),'Invalid card number range rejected');
+rejects(fn()=>validate_question(array_replace($card,['view'=>'bars'])),'Cards only use the card result view');
+rejects(fn()=>validate_answer($cardQuestion,['Text','Ja']),'Incomplete card rejected');
+rejects(fn()=>validate_answer($cardQuestion,['Text','Ja',0,'Extra']),'Extra card answers rejected');
+rejects(fn()=>validate_answer($cardQuestion,[1=>'Text',2=>'Ja',3=>0]),'Card answer must be a list');
+rejects(fn()=>validate_answer($cardQuestion,['','Ja',0]),'Empty card text rejected');
+rejects(fn()=>validate_answer($cardQuestion,[str_repeat('å',501),'Ja',0]),'Long card text rejected');
+rejects(fn()=>validate_answer($cardQuestion,['Text','Kanske',0]),'Invalid card yes/no answer rejected');
+rejects(fn()=>validate_answer($cardQuestion,['Text','Ja','0']),'Card number must be numeric JSON');
+rejects(fn()=>validate_answer($cardQuestion,['Text','Ja',11]),'Out-of-range card value rejected');
+rejects(fn()=>validate_answer($cardQuestion,['Text','Ja',INF]),'Infinite card value rejected');
+rejects(fn()=>validate_answer($cardQuestion,['Text','Ja',['bad']]),'Nested answer data rejected');
 check($designQuestion['colors']['primary']==='#4941ce','Question design uses the shared appearance contract');
 $q=['kind'=>'check','options_json'=>'["A","B"]'];
 check(validate_answer($q,['A','B'])===['A','B'],'Multiple choices');

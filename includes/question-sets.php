@@ -39,7 +39,7 @@ function set_participant_question(array $set,array $questions,array $answered): 
 function handle_question_set(string $action,string $code,int $id): void {
     global $config;
     $write=in_array($action,['update','delete','answer','set-advance','set-design'],true);
-    $data=$write?require_write($action==='set-design'?5242880:16384):[];
+    $data=$write?require_write($action==='set-design'?5242880:($action==='answer'?65536:16384)):[];
     $db=database();
     // Every set operation locks the root first, including reads, for a coherent state.
     $db->begin_transaction();

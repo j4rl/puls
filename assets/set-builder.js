@@ -1,5 +1,6 @@
 import {escapeHTML as e} from './charts.js';
 import {createSetDesignEditor} from './set-design.js';
+import {invalidCard} from './question-card.js';
 
 export function initSetBuilder({form,draft,loadDraft,openEditor}){
  const panel=document.createElement('section');panel.className='set-builder';
@@ -34,7 +35,7 @@ export function initSetBuilder({form,draft,loadDraft,openEditor}){
  });
  form.querySelector('#question-title').addEventListener('input',()=>{if(toggle.checked){capture();draw();}});
  panel.querySelector('#set-add').addEventListener('click',()=>{
-  if(questions.length>=20)return;capture();questions.push({kind:'choice',title:'',options:['',''],min:0,max:10,view:'bars'});index=questions.length-1;loadDraft(questions[index]);draw();changed();openEditor?.();form.querySelector('#question-title').focus();
+  if(questions.length>=20)return;capture();questions.push({kind:'choice',title:'',options:['',''],min:0,max:10,view:'bars'});index=questions.length-1;loadDraft(questions[index]);draw();changed();openEditor?.();
  });
  for(const [id,delta] of [['set-up',-1],['set-down',1]])panel.querySelector('#'+id).addEventListener('click',()=>{
   const next=index+delta;if(next<0||next>=questions.length)return;capture();[questions[index],questions[next]]=[questions[next],questions[index]];index=next;draw();changed();
@@ -56,7 +57,7 @@ export function initSetBuilder({form,draft,loadDraft,openEditor}){
     const q=questions[i];
     const labels=q.kind==='matrix'?q.options.rows:q.options;
     const invalid=!q.title||(['choice','check','ranking'].includes(q.kind)&&(labels.length<2||labels.some(o=>!o)||new Set(labels.map(o=>o.toLocaleLowerCase('sv'))).size!==labels.length))||(q.kind==='matrix'&&(labels.length<2||labels.some(o=>!o)||q.options.columns.length<2))||(q.kind==='scale'&&(!Number.isInteger(q.min)||!Number.isInteger(q.max)||q.min>=q.max||q.max-q.min>10))||(['number'].includes(q.kind)&&(!Number.isFinite(q.min)||!Number.isFinite(q.max)||q.min>=q.max||Math.abs(q.min)>1000000||Math.abs(q.max)>1000000));
-    if(invalid){index=i;loadDraft(q);draw();openEditor?.();form.querySelector('#question-title').focus();throw Error(`Kontrollera fråga ${i+1}: skriv en fråga och giltiga, unika svarsalternativ eller ett giltigt intervall.`);}
+    if(invalid||(q.kind==='card'&&invalidCard(q))){index=i;loadDraft(q);draw();openEditor?.();form.querySelector('#question-title').focus();throw Error(`Kontrollera fråga ${i+1}: fyll i frågan och alla delfrågor, svarsalternativ eller intervall.`);}
    }
   return {title:title.value.trim(),progression:progression.value,questions,design:designEditor.value()};
   }

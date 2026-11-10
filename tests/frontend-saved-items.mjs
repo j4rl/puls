@@ -46,7 +46,7 @@ async function get(action,query={}){
 }
 async function waitText(page,selector,text){await page.waitForFunction(({selector,text})=>document.querySelector(selector)?.textContent.includes(text),{selector,text});}
 async function closeQuestion(page){await page.locator('[data-editor-save]').click();await page.locator('#question-editor-dialog').waitFor({state:'hidden'});}
-async function selectKind(page,kind){await page.locator(`[name=kind][value=${kind}]`).check();await page.locator('#question-editor-dialog').waitFor({state:'visible'});}
+async function selectKind(page,kind){if(!await page.locator('#question-editor-dialog').isVisible())await page.locator('#question-edit').click();await page.locator('#question-editor-dialog').waitFor({state:'visible'});await page.locator(`[name=kind][value=${kind}]`).check();}
 async function save(page,expectedId){
  await page.locator('#publish').click();
  await page.waitForURL(url=>url.searchParams.has('edit')&&url.searchParams.has('saved'));

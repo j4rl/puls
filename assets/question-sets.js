@@ -2,12 +2,14 @@ import {escapeHTML as e,renderChart,number} from './charts.js';
 import {initResultPrinting} from './results-print.js';
 import {applySetDesign,editSetDesign} from './set-design.js';
 import {initJoinFocus} from './join-focus.js';
+import {cardAnswerInputs,readCardAnswer} from './question-card.js';
 
 const views={bars:'Staplar',pie:'Cirkeldiagram',cloud:'Ordmoln',cards:'Textrutor',thermo:'Termometer',matrix:'Matris'};
-const allowed={choice:['bars','pie'],yesno:['pie','bars'],number:['thermo','bars'],scale:['bars','thermo'],check:['bars'],ranking:['bars'],matrix:['matrix'],sentence:['cards'],word:['cloud','cards']};
+const allowed={choice:['bars','pie'],yesno:['pie','bars'],number:['thermo','bars'],scale:['bars','thermo'],check:['bars'],ranking:['bars'],matrix:['matrix'],sentence:['cards'],word:['cloud','cards'],card:['cards']};
 const showError=(target,message)=>{if(target)target.innerHTML=message?`<div class="error" role="alert">${e(message)}</div>`:'';};
 
 function answerInputs(q){
+ if(q.kind==='card')return cardAnswerInputs(q);
  if(['choice','yesno','check'].includes(q.kind))return `<fieldset><legend class="sr-only">Ditt svar</legend>${q.options.map((option,i)=>`<label class="answerchoice"><input type="${q.kind==='check'?'checkbox':'radio'}" name="answer" value="${i}"${q.kind==='check'?'':' required'}><span>${e(option)}</span></label>`).join('')}</fieldset>`;
  if(q.kind==='scale')return `<fieldset><legend>Välj ett steg</legend>${Array.from({length:q.max-q.min+1},(_,i)=>q.min+i).map(value=>`<label class="answerchoice"><input type="radio" name="answer" value="${value}" required><span>${number(value)}</span></label>`).join('')}</fieldset>`;
  if(q.kind==='number')return `<label class="field"><span>Ditt värde (${number(q.min)}–${number(q.max)})</span><input type="number" name="answer" min="${e(q.min)}" max="${e(q.max)}" step="any" inputmode="decimal" required placeholder="Ange ett tal"></label>`;
@@ -29,6 +31,7 @@ export function joinQuestionSet({app,api,code,initial,isStopped}){
    app.innerHTML=`<section class="panel joincard"><span class="eyebrow">${e(set.title)}</span><p class="small muted">${progress} · Kod ${e(code)}</p>${content}<p id="paused-note" class="error" role="status" hidden>Frågesetet är pausat. Vi väntar på att det öppnas.</p><p id="set-connection" class="small muted" role="status"></p></section>`;
   app.querySelectorAll('.rank-up,.rank-down').forEach(button=>button.addEventListener('click',()=>{const item=button.closest('li'),other=button.classList.contains('rank-up')?item.previousElementSibling:item.nextElementSibling;if(!other)return;item.parentElement.insertBefore(button.classList.contains('rank-up')?item:other,button.classList.contains('rank-up')?other:item);item.parentElement.querySelectorAll('li').forEach((li,i)=>{li.querySelector('.rank-up').disabled=!i;li.querySelector('.rank-down').disabled=i===item.parentElement.children.length-1;});}));
    app.querySelector('#answer-form')?.addEventListener('submit',submit);
+   if(q?.kind==='card'&&app.querySelector('#send-answer'))app.querySelector('#send-answer').textContent='Skicka kort →';
    if(hadScreen)app.querySelector('h1').focus();
   }
   app.querySelector('#paused-note').hidden=state.set.open||state.complete;
@@ -51,7 +54,8 @@ export function joinQuestionSet({app,api,code,initial,isStopped}){
   event.preventDefault();const form=event.currentTarget,q=state.question;
   if(inactive()||sending||!state.set.open||!form.reportValidity())return;
   let value;
-    if(q.kind==='check')value=[...form.querySelectorAll('input:checked')].map(input=>q.options[Number(input.value)]);
+    if(q.kind==='card')value=readCardAnswer(q,form);
+    else if(q.kind==='check')value=[...form.querySelectorAll('input:checked')].map(input=>q.options[Number(input.value)]);
   else if(['choice','yesno'].includes(q.kind))value=q.options[Number(new FormData(form).get('answer'))];
     else if(['number','scale'].includes(q.kind))value=form.elements.answer.valueAsNumber;
     else if(q.kind==='ranking')value=[...form.querySelectorAll('[data-rank-value]')].map(item=>item.dataset.rankValue);
@@ -71,7 +75,7 @@ export function joinQuestionSet({app,api,code,initial,isStopped}){
    showError(app.querySelector('#answer-error'),err.message);
    revision++;await refresh();
   }finally{
-   sending=false;if(!inactive()){render();const current=app.querySelector('#send-answer');if(current)current.textContent='Skicka svar →';}
+   sending=false;if(!inactive()){render();const current=app.querySelector('#send-answer');if(current)current.textContent=state.question?.kind==='card'?'Skicka kort →':'Skicka svar →';}
   }
  }
  async function poll(){

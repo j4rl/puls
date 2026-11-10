@@ -92,7 +92,7 @@ try {
         respond(['ok'=>true]);
     }
     if ($action === 'answer') {
-        $p=require_write();
+        $p=require_write(65536);
         $db=database();$db->begin_transaction();
         try {
             $q=find_question($code,true);
